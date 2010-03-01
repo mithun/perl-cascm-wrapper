@@ -4,19 +4,19 @@ use 5.006;
 use warnings;
 use strict;
 use Carp;
+use Cwd qw(abs_path);
 
 use Config::Tiny;
-use Cwd qw(abs_path);
-use File::HomeDir;
 use File::Path::Tiny;
-use File::Temp qw(tempfile);
 use File::Which;
 use Log::Any qw($log);
 
 ## Version
 our $VERSION = '0.01';
 
-## Module Methods
+####################
+## Module Methods ##
+####################
 
 # Constructor
 sub new {
@@ -100,11 +100,14 @@ sub set_working_directory {
     # Trim trailing slash
     $wdir =~ s{[\\\/]$}{}x;
 
+    # Clean up
+    $wdir = abs_path($wdir)
+      || ( $self->_err("Cannot use directory $wdir") and return );
+
     # Make sure it exists and we can write to it
     if ( not -d $wdir ) {
         File::Path::Tiny::mk($wdir) or croak "Unable to create $wdir : $!";
     }
-    else { my $fh = tempfile( 'testwdirXXXXX', DIR => $wdir ); }
 
     $self->{_options}->{'working_directory'} = $wdir;
     return 1;
@@ -113,9 +116,70 @@ sub set_working_directory {
 # Get working directory
 sub get_working_directory { shift->{_options}->{'working_directory'}; }
 
-## CASCM Methods
+###################
+## CASCM Methods ##
+###################
 
-## Internal Methods
+sub haccess   { shift->_run( 'haccess',   @_ ); }
+sub hap       { shift->_run( 'hap',       @_ ); }
+sub har       { shift->_run( 'har',       @_ ); }
+sub hauthsync { shift->_run( 'hauthsync', @_ ); }
+sub hcbl      { shift->_run( 'hcbl',      @_ ); }
+sub hccmrg    { shift->_run( 'hccmrg',    @_ ); }
+sub hcrrlte   { shift->_run( 'hcrrlte',   @_ ); }
+sub hchgtype  { shift->_run( 'hchgtype',  @_ ); }
+sub hchu      { shift->_run( 'hchu',      @_ ); }
+sub hci       { shift->_run( 'hci',       @_ ); }
+sub hcmpview  { shift->_run( 'hcmpview',  @_ ); }
+sub hco       { shift->_run( 'hco',       @_ ); }
+sub hcp       { shift->_run( 'hcp',       @_ ); }
+sub hcpj      { shift->_run( 'hcpj',      @_ ); }
+sub hcropmrg  { shift->_run( 'hcropmrg',  @_ ); }
+sub hcrtpath  { shift->_run( 'hcrtpath',  @_ ); }
+sub hdlp      { shift->_run( 'hdlp',      @_ ); }
+sub hdp       { shift->_run( 'hdp',       @_ ); }
+sub hdv       { shift->_run( 'hdv',       @_ ); }
+sub hexecp    { shift->_run( 'hexecp',    @_ ); }
+sub hexpenv   { shift->_run( 'hexpenv',   @_ ); }
+sub hfatt     { shift->_run( 'hfatt',     @_ ); }
+sub hformsync { shift->_run( 'hformsync', @_ ); }
+sub hft       { shift->_run( 'hft',       @_ ); }
+sub hgetusg   { shift->_run( 'hgetusg',   @_ ); }
+sub himpenv   { shift->_run( 'himpenv',   @_ ); }
+sub hlr       { shift->_run( 'hlr',       @_ ); }
+sub hlv       { shift->_run( 'hlv',       @_ ); }
+sub hmvitm    { shift->_run( 'hmvitm',    @_ ); }
+sub hmvpkg    { shift->_run( 'hmvpkg',    @_ ); }
+sub hmvpth    { shift->_run( 'hmvpth',    @_ ); }
+sub hpg       { shift->_run( 'hpg',       @_ ); }
+sub hpkgunlk  { shift->_run( 'hpkgunlk',  @_ ); }
+sub hpp       { shift->_run( 'hpp',       @_ ); }
+sub hppolget  { shift->_run( 'hppolget',  @_ ); }
+sub hppolset  { shift->_run( 'hppolset',  @_ ); }
+sub hrefresh  { shift->_run( 'hrefresh',  @_ ); }
+sub hrepedit  { shift->_run( 'hrepedit',  @_ ); }
+sub hrepmngr  { shift->_run( 'hrepmngr',  @_ ); }
+sub hri       { shift->_run( 'hri',       @_ ); }
+sub hrmvpth   { shift->_run( 'hrmvpth',   @_ ); }
+sub hrnitm    { shift->_run( 'hrnitm',    @_ ); }
+sub hrnpth    { shift->_run( 'hrnpth',    @_ ); }
+sub hrt       { shift->_run( 'hrt',       @_ ); }
+sub hsigget   { shift->_run( 'hsigget',   @_ ); }
+sub hsigset   { shift->_run( 'hsigset',   @_ ); }
+sub hsmtp     { shift->_run( 'hsmtp',     @_ ); }
+sub hspp      { shift->_run( 'hspp',      @_ ); }
+sub hsql      { shift->_run( 'hsql',      @_ ); }
+sub hsv       { shift->_run( 'hsv',       @_ ); }
+sub hsync     { shift->_run( 'hsync',     @_ ); }
+sub htakess   { shift->_run( 'htakess',   @_ ); }
+sub hudp      { shift->_run( 'hudp',      @_ ); }
+sub hup       { shift->_run( 'hup',       @_ ); }
+sub husrmgr   { shift->_run( 'husrmgr',   @_ ); }
+sub husrunlk  { shift->_run( 'husrunlk',  @_ ); }
+
+######################
+## Internal Methods ##
+######################
 
 # Object initialization
 sub _init {
@@ -132,27 +196,13 @@ sub _init {
     if ( ref $options_ref ne 'HASH' ) { croak "Hash reference expected"; }
 
     # Set default options
-    my $user_home = File::HomeDir->my_home();
     my %default_options = ( 'parse_log'         => 0,
-                            'working_directory' => "${user_home}/.cascm",
+                            'working_directory' => '.',
                             'dry_run'           => 0,
     );
-    $default_options{'ca_scm_home'} = $ENV{CA_SCM_HOME}
-      if ( $ENV{CA_SCM_HOME} and -d $ENV{CA_SCM_HOME} );
-
-    # Default context file
-    # Priority for context file
-    #   (1) Context file provided at initialization
-    #   (2) $ENV{CASCM_CONTEXT}
-    #   (3) ~/.cascm/context.ini
-    my $default_ctx_file = "${user_home}/.cascm/context.ini";
-    $default_options{'context_file'} = $ENV{CASCM_CONTEXT} || $default_ctx_file;
-    delete $default_options{'context_file'}
-      unless -f $default_options{'context_file'};
 
     # Valid options
     my %valid_options = ( 'parse_log'         => 1,
-                          'ca_scm_home'       => 1,
                           'context_file'      => 1,
                           'working_directory' => 1,
                           'dry_run'           => 1,
@@ -166,13 +216,13 @@ sub _init {
     $self->{_options} = \%options;
 
     # Set context
-    my %context;
     my $ctx_file;
     $ctx_file = $options{'context_file'} if $options{'context_file'};
     $self->load_context($ctx_file) if $ctx_file;
 
     # Set working directory
-    $self->set_working_directory( $options{'working_directory'} );
+    $self->set_working_directory( $options{'working_directory'} )
+      or croak "Cannot use working directory $options{'working_directory'}";
 
     # Done initliazing
     return $self;
@@ -216,16 +266,9 @@ sub _get_exe {
     my $self = shift;
     my $cmd  = shift;
 
-    my $exe;
-    my $bin = $self->{_options}->{ca_scm_home} || 0;
-    if ( $bin and ( -d $bin ) ) {
-        if ( $^O ne 'MSWin32' ) { $bin .= "/bin"; }
-        $exe = "${bin}/${cmd}";
-    }
-
-    $exe ||= which($cmd);
-    $exe = abs_path($exe) if $exe;
-
+    my $exe = which($cmd)
+      || ( $self->_err("Cannot find $cmd in PATH") and return );
+    $exe = abs_path($exe);
     return $exe;
 }
 
