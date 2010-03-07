@@ -1,15 +1,12 @@
 package CASCM::Wrapper;
 
-use 5.006;
+use 5.006001;
 use warnings;
 use strict;
 use Carp;
-use Cwd qw(abs_path);
 
 use Config::Tiny;
-use File::Path::Tiny;
 use File::Which;
-use Log::Any qw($log);
 
 ## Version
 our $VERSION = '0.01';
@@ -28,8 +25,8 @@ sub new {
     return $self->_init($options_ref);
 }
 
-# Set global Context
-sub set_global_context {
+# Set Context
+sub set_context {
     my $self = shift;
     my $context = shift || {};
 
@@ -38,27 +35,8 @@ sub set_global_context {
         return;
     }
 
-    return $self->_set_context( { global => $context } );
-}
-
-# Set command context
-sub set_cmd_context {
-    my $self = shift;
-    my $cmd  = shift
-      || ( $self->_err("Command required to set context for it") and return );
-    my $context = shift;
-
-    if ( ref $context ne 'HASH' ) {
-        $self->_err("Context must be a hash reference");
-        return;
-    }
-    return $self->_set_context( { 'cmd' => { $cmd => $context } } );
-}
-
-# Get context
-sub get_context {
-    my $self = shift;
-    return $self->_get_context(@_);
+    $self->{_context} = $context;
+    return 1;
 }
 
 # load context
@@ -72,110 +50,102 @@ sub load_context {
       || ( $self->_err("Error when reading $file : $Config::Tiny::errstr")
            and return );
 
-    my $context;
+    my $context = {};
     foreach ( keys %{$config} ) {
-        my $section;
-        if ( $_ eq '_' ) {
-            $section = 'global';
-            $context->{$section} = $config->{$_};
-        }
-        else { $section = 'cmd'; $context->{$section}->{$_} = $config->{$_}; }
+        if   ( $_ eq '_' ) { $context->{global} = $config->{$_}; }
+        else               { $context->{$_}     = $config->{$_}; }
     }
 
-    return $self->_set_context($context);
+    return $self->set_context($context);
 }
+
+# Update Context
+sub update_context {
+    my $self = shift;
+    my $new = shift || {};
+
+    if ( ref $new ne 'HASH' ) {
+        $self->_err("Context must be a hash reference");
+        return;
+    }
+
+    my $context = $self->get_context();
+
+    foreach my $type ( keys %{$new} ) {
+        foreach my $key ( keys %{ $new->{$type} } ) {
+            $context->{$type}->{$key} = $new->{$type}->{$key};
+        }
+    }
+
+    return $self->set_context($context);
+}
+
+# Get context
+sub get_context { return shift->{_context}; }
 
 # Get error message
-sub errstr {
-    my $self = shift;
-    return $self->{_errstr};
-}
-
-# Set working directory
-sub set_working_directory {
-    my $self = shift;
-    my $wdir = shift
-      || ( $self->_err("No working directory provided") and return );
-
-    # Trim trailing slash
-    $wdir =~ s{[\\\/]$}{}x;
-
-    # Clean up
-    $wdir = abs_path($wdir)
-      || ( $self->_err("Cannot use directory $wdir") and return );
-
-    # Make sure it exists and we can write to it
-    if ( not -d $wdir ) {
-        File::Path::Tiny::mk($wdir) or croak "Unable to create $wdir : $!";
-    }
-
-    $self->{_options}->{'working_directory'} = $wdir;
-    return 1;
-}
-
-# Get working directory
-sub get_working_directory { shift->{_options}->{'working_directory'}; }
+sub errstr { return shift->{_errstr}; }
 
 ###################
 ## CASCM Methods ##
 ###################
 
-sub haccess   { shift->_run( 'haccess',   @_ ); }
-sub hap       { shift->_run( 'hap',       @_ ); }
-sub har       { shift->_run( 'har',       @_ ); }
-sub hauthsync { shift->_run( 'hauthsync', @_ ); }
-sub hcbl      { shift->_run( 'hcbl',      @_ ); }
-sub hccmrg    { shift->_run( 'hccmrg',    @_ ); }
-sub hcrrlte   { shift->_run( 'hcrrlte',   @_ ); }
-sub hchgtype  { shift->_run( 'hchgtype',  @_ ); }
-sub hchu      { shift->_run( 'hchu',      @_ ); }
-sub hci       { shift->_run( 'hci',       @_ ); }
-sub hcmpview  { shift->_run( 'hcmpview',  @_ ); }
-sub hco       { shift->_run( 'hco',       @_ ); }
-sub hcp       { shift->_run( 'hcp',       @_ ); }
-sub hcpj      { shift->_run( 'hcpj',      @_ ); }
-sub hcropmrg  { shift->_run( 'hcropmrg',  @_ ); }
-sub hcrtpath  { shift->_run( 'hcrtpath',  @_ ); }
-sub hdlp      { shift->_run( 'hdlp',      @_ ); }
-sub hdp       { shift->_run( 'hdp',       @_ ); }
-sub hdv       { shift->_run( 'hdv',       @_ ); }
-sub hexecp    { shift->_run( 'hexecp',    @_ ); }
-sub hexpenv   { shift->_run( 'hexpenv',   @_ ); }
-sub hfatt     { shift->_run( 'hfatt',     @_ ); }
-sub hformsync { shift->_run( 'hformsync', @_ ); }
-sub hft       { shift->_run( 'hft',       @_ ); }
-sub hgetusg   { shift->_run( 'hgetusg',   @_ ); }
-sub himpenv   { shift->_run( 'himpenv',   @_ ); }
-sub hlr       { shift->_run( 'hlr',       @_ ); }
-sub hlv       { shift->_run( 'hlv',       @_ ); }
-sub hmvitm    { shift->_run( 'hmvitm',    @_ ); }
-sub hmvpkg    { shift->_run( 'hmvpkg',    @_ ); }
-sub hmvpth    { shift->_run( 'hmvpth',    @_ ); }
-sub hpg       { shift->_run( 'hpg',       @_ ); }
-sub hpkgunlk  { shift->_run( 'hpkgunlk',  @_ ); }
-sub hpp       { shift->_run( 'hpp',       @_ ); }
-sub hppolget  { shift->_run( 'hppolget',  @_ ); }
-sub hppolset  { shift->_run( 'hppolset',  @_ ); }
-sub hrefresh  { shift->_run( 'hrefresh',  @_ ); }
-sub hrepedit  { shift->_run( 'hrepedit',  @_ ); }
-sub hrepmngr  { shift->_run( 'hrepmngr',  @_ ); }
-sub hri       { shift->_run( 'hri',       @_ ); }
-sub hrmvpth   { shift->_run( 'hrmvpth',   @_ ); }
-sub hrnitm    { shift->_run( 'hrnitm',    @_ ); }
-sub hrnpth    { shift->_run( 'hrnpth',    @_ ); }
-sub hrt       { shift->_run( 'hrt',       @_ ); }
-sub hsigget   { shift->_run( 'hsigget',   @_ ); }
-sub hsigset   { shift->_run( 'hsigset',   @_ ); }
-sub hsmtp     { shift->_run( 'hsmtp',     @_ ); }
-sub hspp      { shift->_run( 'hspp',      @_ ); }
-sub hsql      { shift->_run( 'hsql',      @_ ); }
-sub hsv       { shift->_run( 'hsv',       @_ ); }
-sub hsync     { shift->_run( 'hsync',     @_ ); }
-sub htakess   { shift->_run( 'htakess',   @_ ); }
-sub hudp      { shift->_run( 'hudp',      @_ ); }
-sub hup       { shift->_run( 'hup',       @_ ); }
-sub husrmgr   { shift->_run( 'husrmgr',   @_ ); }
-sub husrunlk  { shift->_run( 'husrunlk',  @_ ); }
+sub haccess   { return shift->_run( 'haccess',   @_ ); }
+sub hap       { return shift->_run( 'hap',       @_ ); }
+sub har       { return shift->_run( 'har',       @_ ); }
+sub hauthsync { return shift->_run( 'hauthsync', @_ ); }
+sub hcbl      { return shift->_run( 'hcbl',      @_ ); }
+sub hccmrg    { return shift->_run( 'hccmrg',    @_ ); }
+sub hcrrlte   { return shift->_run( 'hcrrlte',   @_ ); }
+sub hchgtype  { return shift->_run( 'hchgtype',  @_ ); }
+sub hchu      { return shift->_run( 'hchu',      @_ ); }
+sub hci       { return shift->_run( 'hci',       @_ ); }
+sub hcmpview  { return shift->_run( 'hcmpview',  @_ ); }
+sub hco       { return shift->_run( 'hco',       @_ ); }
+sub hcp       { return shift->_run( 'hcp',       @_ ); }
+sub hcpj      { return shift->_run( 'hcpj',      @_ ); }
+sub hcropmrg  { return shift->_run( 'hcropmrg',  @_ ); }
+sub hcrtpath  { return shift->_run( 'hcrtpath',  @_ ); }
+sub hdlp      { return shift->_run( 'hdlp',      @_ ); }
+sub hdp       { return shift->_run( 'hdp',       @_ ); }
+sub hdv       { return shift->_run( 'hdv',       @_ ); }
+sub hexecp    { return shift->_run( 'hexecp',    @_ ); }
+sub hexpenv   { return shift->_run( 'hexpenv',   @_ ); }
+sub hfatt     { return shift->_run( 'hfatt',     @_ ); }
+sub hformsync { return shift->_run( 'hformsync', @_ ); }
+sub hft       { return shift->_run( 'hft',       @_ ); }
+sub hgetusg   { return shift->_run( 'hgetusg',   @_ ); }
+sub himpenv   { return shift->_run( 'himpenv',   @_ ); }
+sub hlr       { return shift->_run( 'hlr',       @_ ); }
+sub hlv       { return shift->_run( 'hlv',       @_ ); }
+sub hmvitm    { return shift->_run( 'hmvitm',    @_ ); }
+sub hmvpkg    { return shift->_run( 'hmvpkg',    @_ ); }
+sub hmvpth    { return shift->_run( 'hmvpth',    @_ ); }
+sub hpg       { return shift->_run( 'hpg',       @_ ); }
+sub hpkgunlk  { return shift->_run( 'hpkgunlk',  @_ ); }
+sub hpp       { return shift->_run( 'hpp',       @_ ); }
+sub hppolget  { return shift->_run( 'hppolget',  @_ ); }
+sub hppolset  { return shift->_run( 'hppolset',  @_ ); }
+sub hrefresh  { return shift->_run( 'hrefresh',  @_ ); }
+sub hrepedit  { return shift->_run( 'hrepedit',  @_ ); }
+sub hrepmngr  { return shift->_run( 'hrepmngr',  @_ ); }
+sub hri       { return shift->_run( 'hri',       @_ ); }
+sub hrmvpth   { return shift->_run( 'hrmvpth',   @_ ); }
+sub hrnitm    { return shift->_run( 'hrnitm',    @_ ); }
+sub hrnpth    { return shift->_run( 'hrnpth',    @_ ); }
+sub hrt       { return shift->_run( 'hrt',       @_ ); }
+sub hsigget   { return shift->_run( 'hsigget',   @_ ); }
+sub hsigset   { return shift->_run( 'hsigset',   @_ ); }
+sub hsmtp     { return shift->_run( 'hsmtp',     @_ ); }
+sub hspp      { return shift->_run( 'hspp',      @_ ); }
+sub hsql      { return shift->_run( 'hsql',      @_ ); }
+sub hsv       { return shift->_run( 'hsv',       @_ ); }
+sub hsync     { return shift->_run( 'hsync',     @_ ); }
+sub htakess   { return shift->_run( 'htakess',   @_ ); }
+sub hudp      { return shift->_run( 'hudp',      @_ ); }
+sub hup       { return shift->_run( 'hup',       @_ ); }
+sub husrmgr   { return shift->_run( 'husrmgr',   @_ ); }
+sub husrunlk  { return shift->_run( 'husrunlk',  @_ ); }
 
 ######################
 ## Internal Methods ##
@@ -187,26 +157,18 @@ sub _init {
     my $options_ref = shift;
 
     # Basic initliazation
-    $self->{_options}           = {};
-    $self->{_context}->{global} = {};
-    $self->{_context}->{cmd}    = {};
-    $self->{_errstr}            = {};
+    $self->{_options} = {};
+    $self->{_context} = {};
+    $self->{_errstr}  = qw();
 
     # Make sure we have a option hash ref
     if ( ref $options_ref ne 'HASH' ) { croak "Hash reference expected"; }
 
     # Set default options
-    my %default_options = ( 'parse_log'         => 0,
-                            'working_directory' => '.',
-                            'dry_run'           => 0,
-    );
+    my %default_options = ( 'dry_run' => 0, );
 
     # Valid options
-    my %valid_options = ( 'parse_log'         => 1,
-                          'context_file'      => 1,
-                          'working_directory' => 1,
-                          'dry_run'           => 1,
-    );
+    my %valid_options = ( 'context_file' => 1, 'dry_run' => 1, );
 
     # Read options
     my %options = ( %default_options, %{$options_ref} );
@@ -220,10 +182,6 @@ sub _init {
     $ctx_file = $options{'context_file'} if $options{'context_file'};
     $self->load_context($ctx_file) if $ctx_file;
 
-    # Set working directory
-    $self->set_working_directory( $options{'working_directory'} )
-      or croak "Cannot use working directory $options{'working_directory'}";
-
     # Done initliazing
     return $self;
 }
@@ -236,31 +194,6 @@ sub _err {
     return 1;
 }
 
-# Set context
-sub _set_context {
-    my $self = shift;
-    my $context = shift || {};
-    $self->{_context} = $context;
-    return 1;
-}
-
-# Get context
-sub _get_context {
-    my $self = shift;
-    my $cmd  = shift;
-
-    my $context = $self->{_context};
-
-    my %cmd_context = ( %{ $context->{global} } );
-    if ($cmd) {
-        %cmd_context = ( %cmd_context, %{ $context->{cmd}->{$cmd} } )
-          if exists $context->{cmd}->{$cmd};
-    }
-
-    return %cmd_context if wantarray;
-    return \%cmd_context;
-}
-
 # Find Executable
 sub _get_exe {
     my $self = shift;
@@ -268,7 +201,7 @@ sub _get_exe {
 
     my $exe = which($cmd)
       || ( $self->_err("Cannot find $cmd in PATH") and return );
-    $exe = abs_path($exe);
+
     return $exe;
 }
 
@@ -283,40 +216,30 @@ sub _run {
     if ( ref $args[0] eq 'HASH' ) { $run_context = shift @args; }
 
     # Get options
-    my $wdir      = $self->{_options}->{'working_directory'};
-    my $parse_log = $self->{_options}->{'parse_log'};
-    my $dry_run   = $self->{_options}->{'dry_run'};
+    my $dry_run = $self->{_options}->{'dry_run'};
 
     # Get executable
     my $cmd_exe;
     if ($dry_run) { $cmd_exe = $self->_get_exe($cmd) || $cmd; }
-    else {
-        $cmd_exe = $self->_get_exe($cmd)
-          || ( $self->_err("Unable to find executable $cmd") and return );
-    }
+    else          { $cmd_exe = $self->_get_exe($cmd) or return; }
 
     # Get cmd context
-    my $context = { $self->get_context($cmd), %{$run_context} };
+    my $global_context = $self->get_context()->{global} || {};
+    my $cmd_context    = $self->get_context()->{$cmd}   || {};
+    my $context = { %{$global_context}, %{$cmd_context}, %{$run_context} };
 
-    # Default log name. 'o' gets overwritten if we're parsing logs
-    my $default_log = "${wdir}/${cmd}.log";
-    if (    ( not exists $context->{'o'} )
-         || ( not exists $context->{'oa'} )
-         || $parse_log )
-    {
-        delete $context->{'oa'} if exists $context->{'oa'};
-        $context->{'o'} = "\"$default_log\"";
-    }
+    # Default log name.
+    my $default_log = "${cmd}.log";
 
     # Build argument string
     my $arg_str = "-arg ";
-    $arg_str .= "\"$_\" " for @args;
+    $arg_str .= "$_ " for @args;
 
     # Get option string for $cmd
     my $opt_str = $self->_get_option_str( $cmd, $context );
 
     # Prepare DI file
-    my $di_file = "${wdir}/${cmd}.di." . time . ".tmp";
+    my $di_file = "${cmd}.di." . time . ".tmp";
     open my $DIF, '>',
       $di_file || ( $self->_err("Unable to create $di_file") and return );
     print $DIF "$arg_str $opt_str"
@@ -329,11 +252,18 @@ sub _run {
     my @out = `$cmd_str 2>&1`;
     my $rc  = $?;
 
+    # Cleanup DI file if command didn't remove it
+    if ( ( not $dry_run ) and ( -f $di_file ) ) { unlink $di_file; }
+
     # Parse log
-    _parse_log($default_log) if $parse_log;
+    my $log_ref = _parse_log($default_log);
+
+    # Get success/failure
+    my $success = $self->_handle_error( $cmd, $rc );
 
     # Return
-    return $self->_handle_error( $cmd, $rc );
+    return $success, $log_ref if wantarray;
+    return $success;
 }
 
 # Get option string
@@ -360,7 +290,7 @@ sub _get_cmd_options {
     my $cmd = shift;
 
     my $options = {
-        'common'    => [qw(o oa v wts)],
+        'common'    => [qw(v wts)],
         'haccess'   => [qw(b usr pw en rn ha ug ft eh)],
         'hap'       => [qw(b en st pn c usr pw rej eh)],
         'har'       => [qw(b f m musr mpw usr pw eh er)],
@@ -445,19 +375,19 @@ sub _handle_error {
 
     # Standard cases
     my %error = (
-               '1' => 'Command syntax is incorrect',
-               '2' => 'Broker not connected',
-               '3' => 'The command line program failed in some anticipated way',
-               '4' => 'Unexpected error',
-               '5' => 'Invalid login',
-               '6' => 'Server or database down',
-               '7' => 'Incorrect service pack level',
-               '8' => 'Incompatible server version',
-               '9' => 'Exposed password',
-               '10' => 'Ambiguous arguments',
-               '11' => 'Access denied',
-               '12' => 'Prelink failed',
-               '13' => 'Postlink failed',
+        '1' => 'Command syntax is incorrect. Please check your context setting',
+        '2' => 'Broker not connected',
+        '3' => 'The command line program failed in some anticipated way',
+        '4' => 'Unexpected error',
+        '5' => 'Invalid login',
+        '6' => 'Server or database down',
+        '7' => 'Incorrect service pack level',
+        '8' => 'Incompatible server version',
+        '9' => 'Exposed password',
+        '10' => 'Ambiguous arguments',
+        '11' => 'Access denied',
+        '12' => 'Prelink failed',
+        '13' => 'Postlink failed',
     );
 
     # Special cases
@@ -492,27 +422,12 @@ sub _handle_error {
 # Parse Log
 sub _parse_log {
     my $logfile = shift;
-
-    open my $L, '<',
-      $logfile || ( $log->error("Unable to read $logfile") and return 1 );
-    while (<$L>) {
-        chomp;
-        my $line = $_;
-
-        if ( $line =~ s/^\s*E\w+:\s*//x ) {
-            $log->error($line);
-        }
-        elsif ( $line =~ s/^\s*W\w+:\s*//x ) {
-            $log->warn($line);
-        }
-        else {
-            $line =~ s/^\s*I\w+:\s*//x;
-            $log->info($line);
-        }
-    }
+    my @lines;
+    open my $L, '<', $logfile || return \@lines;
+    @lines = <$L>;
     close $L;
-    unlink $logfile || $log->warn("Unable to delete $logfile");
-    return 1;
+    unlink $logfile;
+    return \@lines;
 }
 
 #################
