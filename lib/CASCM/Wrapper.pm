@@ -165,10 +165,11 @@ sub _init {
     if ( ref $options_ref ne 'HASH' ) { croak "Hash reference expected"; }
 
     # Set default options
-    my %default_options = ( 'dry_run' => 0, );
+    my %default_options = ( 'dry_run' => 0, 'keep_logs' => 0, );
 
     # Valid options
-    my %valid_options = ( 'context_file' => 1, 'dry_run' => 1, );
+    my %valid_options =
+      ( 'context_file' => 1, 'dry_run' => 1, 'keep_logs' => 1, );
 
     # Read options
     my %options = ( %default_options, %{$options_ref} );
@@ -220,8 +221,8 @@ sub _run {
 
     # Get executable
     my $cmd_exe;
-    if ($dry_run) { $cmd_exe = $self->_get_exe($cmd) || $cmd; }
-    else          { $cmd_exe = $self->_get_exe($cmd) or return; }
+    if   ($dry_run) { $cmd_exe = $cmd; }
+    else            { $cmd_exe = $self->_get_exe($cmd) or return; }
 
     # Get cmd context
     my $global_context = $self->get_context()->{global} || {};
@@ -238,6 +239,9 @@ sub _run {
     # Get option string for $cmd
     my $opt_str = $self->_get_option_str( $cmd, $context );
 
+    # Dry run
+    if ($dry_run) { return 1, ["$cmd_exe $arg_str $opt_str"]; }
+
     # Prepare DI file
     my $di_file = "${cmd}.di." . time . ".tmp";
     open my $DIF, '>',
@@ -248,15 +252,14 @@ sub _run {
 
     # Run command
     my $cmd_str = "$cmd_exe -di=\"${di_file}\"";
-    return $cmd_str if $dry_run;    # Dry run
-    my @out = `$cmd_str 2>&1`;
-    my $rc  = $?;
+    my @out     = `$cmd_str 2>&1`;
+    my $rc      = $?;
 
     # Cleanup DI file if command didn't remove it
     if ( ( not $dry_run ) and ( -f $di_file ) ) { unlink $di_file; }
 
     # Parse log
-    my $log_ref = _parse_log($default_log);
+    my $log_ref = $self->_parse_log($default_log);
 
     # Get success/failure
     my $success = $self->_handle_error( $cmd, $rc );
@@ -400,18 +403,18 @@ sub _handle_error {
     }
     elsif ( $cmd eq 'hco' ) {
         %error = (
-            %error, '14' => 'no version was found for the file name or pattern',
+            %error, '14' => 'No version was found for the file name or pattern',
         );
     }
 
     if ( $rc == -1 ) {
-        $self->_err("failed to execute $cmd");
+        $self->_err("Failed to execute $cmd");
         return;
     }
     elsif ( $rc > 0 ) {
         $rc >>= 8;
         my $msg = $error{$rc} || "Uknown error";
-        $self->_err($msg);
+        $self->_err("$msg : $rc");
         return;
     }
 
@@ -421,12 +424,13 @@ sub _handle_error {
 
 # Parse Log
 sub _parse_log {
+    my $self    = shift;
     my $logfile = shift;
     my @lines;
     open my $L, '<', $logfile || return \@lines;
     @lines = <$L>;
     close $L;
-    unlink $logfile;
+    unlink $logfile unless $self->{_options}->{keep_logs};
     return \@lines;
 }
 
@@ -438,7 +442,7 @@ __END__
 
 =head1 NAME
 
-CASCM::Wrapper - [One line description of module's purpose here]
+CASCM::Wrapper - Run CASCM (Harvest) commands
 
 =head1 VERSION
 
