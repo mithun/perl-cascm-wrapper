@@ -5,11 +5,11 @@ use warnings;
 use strict;
 use Carp;
 
-use Config::Tiny;
-use File::Which;
-
 ## Version
 our $VERSION = '0.01';
+
+## Logger
+our $log;
 
 ####################
 ## Module Methods ##
@@ -46,8 +46,19 @@ sub load_context {
 
     if ( not -f $file ) { $self->_err("File $file does not exist"); return; }
 
+    eval {
+        require Config::Tiny;
+        Config::Tiny->import();
+        return 1;
+      }
+      or do {
+        $self->_err(
+             "Please install Config::Tiny if you'd like to load context files");
+        return;
+      };
+
     my $config = Config::Tiny->read($file)
-      || ( $self->_err("Error when reading $file : $Config::Tiny::errstr")
+      || ( $self->_err("Error reading $file")
            and return );
 
     my $context = {};
@@ -165,11 +176,16 @@ sub _init {
     if ( ref $options_ref ne 'HASH' ) { croak "Hash reference expected"; }
 
     # Set default options
-    my %default_options = ( 'dry_run' => 0, 'keep_logs' => 0, );
+    my %default_options = ( 'context_file' => 0,
+                            'dry_run'      => 0,
+                            'parse_logs'   => 0,
+    );
 
     # Valid options
-    my %valid_options =
-      ( 'context_file' => 1, 'dry_run' => 1, 'keep_logs' => 1, );
+    my %valid_options = ( 'context_file' => 1,
+                          'dry_run'      => 1,
+                          'parse_logs'   => 1,
+    );
 
     # Read options
     my %options = ( %default_options, %{$options_ref} );
@@ -179,9 +195,21 @@ sub _init {
     $self->{_options} = \%options;
 
     # Set context
-    my $ctx_file;
-    $ctx_file = $options{'context_file'} if $options{'context_file'};
-    $self->load_context($ctx_file) if $ctx_file;
+    if ( $options{'context_file'} ) {
+        $self->load_context( $options{'context_file'} )
+          or croak "Error Loading Context file : " . $self->errstr();
+    }
+
+    # Check if we're parsing logs
+    if ( $options{'parse_logs'} ) {
+        eval {
+            require Log::Any;
+            Log::Any->import(qw($log));
+            return 1;
+          }
+          or croak
+          "Error loading Log::Any. Please install it if you'd like to parse logs";
+    }
 
     # Done initliazing
     return $self;
@@ -195,17 +223,6 @@ sub _err {
     return 1;
 }
 
-# Find Executable
-sub _get_exe {
-    my $self = shift;
-    my $cmd  = shift;
-
-    my $exe = which($cmd)
-      || ( $self->_err("Cannot find $cmd in PATH") and return );
-
-    return $exe;
-}
-
 # Execute command
 sub _run {
     my $self = shift;
@@ -217,24 +234,40 @@ sub _run {
     if ( ref $args[0] eq 'HASH' ) { $run_context = shift @args; }
 
     # Get options
-    my $dry_run = $self->{_options}->{'dry_run'};
+    my $dry_run   = $self->{_options}->{'dry_run'};
+    my $parse_log = $self->{_options}->{'parse_logs'};
 
     # Get executable
-    my $cmd_exe;
-    if   ($dry_run) { $cmd_exe = $cmd; }
-    else            { $cmd_exe = $self->_get_exe($cmd) or return; }
+    my $cmd_exe = $cmd;
+    if ( not $dry_run ) {
+        eval {
+            require File::Which;
+            File::Which->import();
+            return 1;
+          }
+          and do {
+            $cmd_exe = which($cmd)
+              || ( $self->_err("Cannot find $cmd in PATH") and return );
+          };
+    }
 
     # Get cmd context
     my $global_context = $self->get_context()->{global} || {};
     my $cmd_context    = $self->get_context()->{$cmd}   || {};
     my $context = { %{$global_context}, %{$cmd_context}, %{$run_context} };
 
-    # Default log name.
+    # Check if we're parsing logs
     my $default_log = "${cmd}.log";
+    if ($parse_log) {
+        delete $context->{'o'}  if exists $context->{'o'};
+        delete $context->{'oa'} if exists $context->{'oa'};
+        $context->{'o'} = $default_log;
+    }
 
     # Build argument string
     my $arg_str = "-arg ";
     $arg_str .= "$_ " for @args;
+    $arg_str =~ s{\s+$}{}g;
 
     # Get option string for $cmd
     my $opt_str = $self->_get_option_str( $cmd, $context );
@@ -251,22 +284,18 @@ sub _run {
     close $DIF;
 
     # Run command
-    my $cmd_str = "$cmd_exe -di=\"${di_file}\"";
+    my $cmd_str = "$cmd_exe -di \"${di_file}\"";
     my @out     = `$cmd_str 2>&1`;
     my $rc      = $?;
 
     # Cleanup DI file if command didn't remove it
-    if ( ( not $dry_run ) and ( -f $di_file ) ) { unlink $di_file; }
+    if ( -f $di_file ) { unlink $di_file; }
 
     # Parse log
-    my $log_ref = $self->_parse_log($default_log);
-
-    # Get success/failure
-    my $success = $self->_handle_error( $cmd, $rc );
+    _parse_log($default_log) if $parse_log;
 
     # Return
-    return $success, $log_ref if wantarray;
-    return $success;
+    return $self->_handle_error( $cmd, $rc );
 }
 
 # Get option string
@@ -293,7 +322,7 @@ sub _get_cmd_options {
     my $cmd = shift;
 
     my $options = {
-        'common'    => [qw(v wts)],
+        'common'    => [qw(v o oa wts)],
         'haccess'   => [qw(b usr pw en rn ha ug ft eh)],
         'hap'       => [qw(b en st pn c usr pw rej eh)],
         'har'       => [qw(b f m musr mpw usr pw eh er)],
@@ -424,14 +453,21 @@ sub _handle_error {
 
 # Parse Log
 sub _parse_log {
-    my $self    = shift;
     my $logfile = shift;
-    my @lines;
-    open my $L, '<', $logfile || return \@lines;
-    @lines = <$L>;
+
+    open my $L, '<',
+      $logfile || ( $log->error("Unable to read $logfile") and return 1 );
+    while (<$L>) {
+        chomp;
+        my $line = $_;
+
+        if    ( $line =~ s/^\s*E\w+:\s*//x ) { $log->error($line); }
+        elsif ( $line =~ s/^\s*W\w+:\s*//x ) { $log->warn($line); }
+        else { $line =~ s/^\s*I\w+:\s*//x; $log->info($line); }
+    }
     close $L;
-    unlink $logfile unless $self->{_options}->{keep_logs};
-    return \@lines;
+    unlink $logfile || $log->warn("Unable to delete $logfile");
+    return 1;
 }
 
 #################

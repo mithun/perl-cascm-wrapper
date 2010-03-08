@@ -8,10 +8,11 @@ my $builder = Module::Build->new(
             dist_author       => 'Mithun Ayachit <mithun@cpan.org>',
             dist_version_from => 'lib/CASCM/Wrapper.pm',
             requires          => {
-                          'perl'         => '5.006001',
-                          'Test::More'   => 0,
-                          'Config::Tiny' => 0,
-                          'File::Which'  => 0,
+                          'perl'       => '5.006001',
+                          'Test::More' => 0,
+            },
+            recommends => { 'Config::Tiny' => 0,
+                            'File::Which'  => 0,
             },
             add_to_cleanup => ['CASCM-Wrapper-*'],
             meta_add       => {
