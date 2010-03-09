@@ -6,7 +6,7 @@ use strict;
 use Carp;
 
 ## Version
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 ## Logger
 our $log;
@@ -254,9 +254,12 @@ sub _run {
     }
 
     # Build argument string
-    my $arg_str = "-arg ";
-    $arg_str .= "$_ " for @args;
-    $arg_str =~ s{\s+$}{}g;
+    my $arg_str = '';
+    if (@args) {
+        $arg_str = "-arg ";
+        $arg_str .= "$_ " for @args;
+        $arg_str =~ s{\s+$}{}g;
+    }
 
     # Get option string for $cmd
     my $opt_str = $self->_get_option_str( $cmd, $context );
@@ -385,8 +388,10 @@ sub _get_cmd_options {
         'husrunlk' => [qw(b usr pw eh)],
     };
 
-    my @cmd_options = ( @{ $options->{common} }, @{ $options->{$cmd} } );
-    return sort { lc $a cmp lc $b } @cmd_options;
+    my @cmd_options =
+      sort { lc $a cmp lc $b }
+      ( @{ $options->{common} }, @{ $options->{$cmd} } );
+    return @cmd_options;
 }
 
 # Handle error/return
@@ -491,7 +496,7 @@ CASCM::Wrapper - Run CASCM (Harvest) commands
 
 =head1 VERSION
 
-This document describes CASCM::Wrapper version 0.01
+This document describes CASCM::Wrapper version 0.02
 
 =head1 SYNOPSIS
 
@@ -580,25 +585,23 @@ to those specific commands
 
 The context items are synonymous with the command line options detailed in the
 CA-SCM Reference Manual. Options that do not require a value should be set to
-'1'. i.e. C<{hco => {up => 1} }> is equivalent of C<hco -up>.
+'1'. i.e. C<{hco =\> {up => 1} }> is equivalent of C<hco -up>.
 
 The 'common' options I<i> and I<di> are not applicable and ignored for all
 contexts. See L</SECURITY>
 
 The following methods are available to manage context
 
-=over
-
-=item set_context($context)
+=head2 set_context($context)
 
 Sets the context. Old context is forgotten. The argument provided must be a
 hash reference
 
-=item update_context($context)
+=head2 update_context($context)
 
 Updates the current context. The argument provided must be a hash reference
 
-=item load_context($file)
+=head2 load_context($file)
 
 This loads the context from an 'INI' file. The root parameters defines the
 global context. Each sectional parameter defines the command specific context.
@@ -629,15 +632,13 @@ This is a sample context file
 B<NOTE:> This method requires L<Config::Tiny> in order to read the context
 file.
 
-=item get_context
+=head2 get_context()
 
 Returns a hash reference of current context
 
 	my $context = $cascm->get_context();
 	use Data::Dumper;
 	print Dumper($context);
-
-=back
 
 =head1 CA-SCM METHODS
 
@@ -741,7 +742,7 @@ which in turn allows you to use any (supproted) Logging mechanism. When using
 this, any 'o' or 'oa' options specified in the context will be ignored. Your
 scripts will need to use the appropriate L<Log::Any::Adapter> to capture the
 log statements. The CA-SCM log is parsed and the messages are logged either as
-'INFO', 'WARNING' or 'ERROR'.
+'INFO', 'WARN' or 'ERROR'.
 
 	# Using Log4perl
 
@@ -756,7 +757,7 @@ log statements. The CA-SCM log is parsed and the messages are logged either as
 	my $log = Log::Log4perl->get_logger();
 
 	# Set parse_logs to true. This will croak if Log:Any is not found.
-	my $cascm = CASCM::Wrapper( { parse_logs => 1 } );
+	my $cascm = CASCM::Wrapper->new( { parse_logs => 1 } );
 
 	# Set Context
 	my $context = { ... };

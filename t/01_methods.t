@@ -101,4 +101,9 @@ can_ok( $cascm, @methods );
 can_ok( $cascm, @commands );
 can_ok( $cascm, @private );
 
+foreach my $cmd (@commands) {
+    ok( CASCM::Wrapper::_get_cmd_options("$cmd") )
+      or diag "Missing options for $cmd";
+}
+
 done_testing();

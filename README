@@ -4,7 +4,7 @@ NAME
 
 VERSION
 
-    This document describes CASCM::Wrapper version 0.01
+    This document describes CASCM::Wrapper version 0.02
 
 SYNOPSIS
 
@@ -88,7 +88,7 @@ CONTEXT
 
     The context items are synonymous with the command line options detailed
     in the CA-SCM Reference Manual. Options that do not require a value
-    should be set to '1'. i.e. "{hco =" {up => 1} }> is equivalent of "hco
+    should be set to '1'. i.e. "{hco =\" {up => 1} }> is equivalent of "hco
     -up".
 
     The 'common' options *i* and *di* are not applicable and ignored for all
@@ -96,51 +96,55 @@ CONTEXT
 
     The following methods are available to manage context
 
-    set_context($context)
-        Sets the context. Old context is forgotten. The argument provided
-        must be a hash reference
+  set_context($context)
 
-    update_context($context)
-        Updates the current context. The argument provided must be a hash
-        reference
+    Sets the context. Old context is forgotten. The argument provided must
+    be a hash reference
 
-    load_context($file)
-        This loads the context from an 'INI' file. The root parameters
-        defines the global context. Each sectional parameter defines the
-        command specific context.
+  update_context($context)
 
-                # Load context file at initialization. This will croak if it fails to read the context file
-                my $cascm = CASCM::Wrapper->new( { context_file => $file } );
+    Updates the current context. The argument provided must be a hash
+    reference
 
-                # Alternatively
-                $cascm->load_context($file) or die $cascm->errstr;
+  load_context($file)
 
-        This is a sample context file
+    This loads the context from an 'INI' file. The root parameters defines
+    the global context. Each sectional parameter defines the command
+    specific context.
 
-                # Sample context file
+            # Load context file at initialization. This will croak if it fails to read the context file
+            my $cascm = CASCM::Wrapper->new( { context_file => $file } );
 
-                # Root parameters. These define the 'global' context
-                b  = harvest
-                eh = user.dfo
+            # Alternatively
+            $cascm->load_context($file) or die $cascm->errstr;
 
-                # Sectional parameters. These define the 'command' context
+    This is a sample context file
 
-                [hco]
-                        up = 1
-                        vp = \repository\myapp\src
+            # Sample context file
 
-                [hcp]
-                        st = development
+            # Root parameters. These define the 'global' context
+            b  = harvest
+            eh = user.dfo
 
-        NOTE: This method requires Config::Tiny in order to read the context
-        file.
+            # Sectional parameters. These define the 'command' context
 
-    get_context
-        Returns a hash reference of current context
+            [hco]
+                    up = 1
+                    vp = \repository\myapp\src
 
-                my $context = $cascm->get_context();
-                use Data::Dumper;
-                print Dumper($context);
+            [hcp]
+                    st = development
+
+    NOTE: This method requires Config::Tiny in order to read the context
+    file.
+
+  get_context()
+
+    Returns a hash reference of current context
+
+            my $context = $cascm->get_context();
+            use Data::Dumper;
+            print Dumper($context);
 
 CA-SCM METHODS
 
@@ -243,8 +247,7 @@ LOGGING
     mechanism. When using this, any 'o' or 'oa' options specified in the
     context will be ignored. Your scripts will need to use the appropriate
     Log::Any::Adapter to capture the log statements. The CA-SCM log is
-    parsed and the messages are logged either as 'INFO', 'WARNING' or
-    'ERROR'.
+    parsed and the messages are logged either as 'INFO', 'WARN' or 'ERROR'.
 
             # Using Log4perl
 
@@ -259,7 +262,7 @@ LOGGING
             my $log = Log::Log4perl->get_logger();
 
             # Set parse_logs to true. This will croak if Log:Any is not found.
-            my $cascm = CASCM::Wrapper( { parse_logs => 1 } );
+            my $cascm = CASCM::Wrapper->new( { parse_logs => 1 } );
 
             # Set Context
             my $context = { ... };
