@@ -11,8 +11,9 @@ my $builder = Module::Build->new(
                           'perl'       => '5.006001',
                           'Test::More' => 0,
             },
-            recommends => { 'Config::Tiny' => 0,
-                            'File::Which'  => 0,
+            recommends => { 'Config::Tiny'      => 0,
+                            'Log::Any'          => 0,
+                            'Log::Any::Adapter' => 0,
             },
             add_to_cleanup => ['CASCM-Wrapper-*'],
             meta_add       => {

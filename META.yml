@@ -1,5 +1,5 @@
 ---
-abstract: "[One line description of module's purpose here]"
+abstract: 'Run CASCM (Harvest) commands'
 author:
   - 'Mithun Ayachit <mithun@cpan.org>'
 configure_requires:
@@ -14,9 +14,11 @@ provides:
   CASCM::Wrapper:
     file: lib/CASCM/Wrapper.pm
     version: 0.01
-requires:
+recommends:
   Config::Tiny: 0
-  File::Which: 0
+  Log::Any: 0
+  Log::Any::Adapter: 0
+requires:
   Test::More: 0
   perl: 5.006001
 resources:

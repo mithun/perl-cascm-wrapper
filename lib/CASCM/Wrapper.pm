@@ -218,7 +218,7 @@ sub _init {
 # Set error
 sub _err {
     my $self = shift;
-    my $msg = shift || "Unknown error";
+    my $msg  = shift;
     $self->{_errstr} = $msg;
     return 1;
 }
@@ -229,6 +229,9 @@ sub _run {
     my $cmd  = shift;
     my @args = @_;
 
+    # Reset error
+    $self->_err(qw());
+
     # Check for context
     my $run_context = {};
     if ( ref $args[0] eq 'HASH' ) { $run_context = shift @args; }
@@ -236,20 +239,6 @@ sub _run {
     # Get options
     my $dry_run   = $self->{_options}->{'dry_run'};
     my $parse_log = $self->{_options}->{'parse_logs'};
-
-    # Get executable
-    my $cmd_exe = $cmd;
-    if ( not $dry_run ) {
-        eval {
-            require File::Which;
-            File::Which->import();
-            return 1;
-          }
-          and do {
-            $cmd_exe = which($cmd)
-              || ( $self->_err("Cannot find $cmd in PATH") and return );
-          };
-    }
 
     # Get cmd context
     my $global_context = $self->get_context()->{global} || {};
@@ -273,19 +262,19 @@ sub _run {
     my $opt_str = $self->_get_option_str( $cmd, $context );
 
     # Dry run
-    if ($dry_run) { return 1, ["$cmd_exe $arg_str $opt_str"]; }
+    if ($dry_run) { return "$cmd $arg_str $opt_str"; }
 
     # Prepare DI file
     my $di_file = "${cmd}.di." . time . ".tmp";
     open my $DIF, '>',
       $di_file || ( $self->_err("Unable to create $di_file") and return );
     print $DIF "$arg_str $opt_str"
-      || ( $self->_err("Unable to print to $di_file") and return );
+      || ( $self->_err("Unable to write to $di_file") and return );
     close $DIF;
 
     # Run command
-    my $cmd_str = "$cmd_exe -di \"${di_file}\"";
-    my @out     = `$cmd_str 2>&1`;
+    my $cmd_str = "$cmd -di \"${di_file}\"";
+    my $out     = `$cmd_str 2>&1`;
     my $rc      = $?;
 
     # Cleanup DI file if command didn't remove it
@@ -295,7 +284,7 @@ sub _run {
     _parse_log($default_log) if $parse_log;
 
     # Return
-    return $self->_handle_error( $cmd, $rc );
+    return $self->_handle_error( $cmd, $rc, $out );
 }
 
 # Get option string
@@ -314,6 +303,7 @@ sub _get_option_str {
         else                 { $opt_str .= "-${option} ${val} "; }
     }
 
+    $opt_str =~ s{\s+$}{}g;
     return $opt_str;
 }
 
@@ -396,7 +386,7 @@ sub _get_cmd_options {
     };
 
     my @cmd_options = ( @{ $options->{common} }, @{ $options->{$cmd} } );
-    return @cmd_options;
+    return sort { lc $a cmp lc $b } @cmd_options;
 }
 
 # Handle error/return
@@ -404,18 +394,20 @@ sub _handle_error {
     my $self = shift;
     my $cmd  = shift;
     my $rc   = shift;
+    my $out  = shift || qw();
 
     # Standard cases
     my %error = (
-        '1' => 'Command syntax is incorrect. Please check your context setting',
-        '2' => 'Broker not connected',
-        '3' => 'The command line program failed in some anticipated way',
-        '4' => 'Unexpected error',
-        '5' => 'Invalid login',
-        '6' => 'Server or database down',
-        '7' => 'Incorrect service pack level',
-        '8' => 'Incompatible server version',
-        '9' => 'Exposed password',
+        '1' =>
+          "Command syntax for $cmd is incorrect. Please check your context setting",
+        '2'  => 'Broker not connected',
+        '3'  => "The command $cmd failed in some anticipated way",
+        '4'  => 'Unexpected error',
+        '5'  => 'Invalid login',
+        '6'  => 'Server or database down',
+        '7'  => 'Incorrect service pack level',
+        '8'  => 'Incompatible server version',
+        '9'  => 'Exposed password',
         '10' => 'Ambiguous arguments',
         '11' => 'Access denied',
         '12' => 'Prelink failed',
@@ -435,15 +427,27 @@ sub _handle_error {
             %error, '14' => 'No version was found for the file name or pattern',
         );
     }
+    elsif ( $cmd eq 'hexecp' ) {
+        %error = (
+            %error,
+            '2' =>
+              'Broker not connected OR the invoked program did not return a value of its own',
+        );
+    }
 
+    # Get error message
+    my $msg;
     if ( $rc == -1 ) {
-        $self->_err("Failed to execute $cmd");
+        $msg = "Failed to execute $cmd";
+        $msg .= " : $out" if $out;
+        $self->_err($msg);
         return;
     }
     elsif ( $rc > 0 ) {
         $rc >>= 8;
-        my $msg = $error{$rc} || "Uknown error";
-        $self->_err("$msg : $rc");
+        $msg = $error{$rc} || "Uknown error";
+        $msg .= " : $out" if $out;
+        $self->_err($msg);
         return;
     }
 
@@ -455,15 +459,20 @@ sub _handle_error {
 sub _parse_log {
     my $logfile = shift;
 
+    if ( not -f $logfile ) {
+        $log->error("Logfile $logfile does not exist");
+        return 1;
+    }
+
     open my $L, '<',
       $logfile || ( $log->error("Unable to read $logfile") and return 1 );
     while (<$L>) {
         chomp;
         my $line = $_;
 
-        if    ( $line =~ s/^\s*E\w+:\s*//x ) { $log->error($line); }
-        elsif ( $line =~ s/^\s*W\w+:\s*//x ) { $log->warn($line); }
-        else { $line =~ s/^\s*I\w+:\s*//x; $log->info($line); }
+        if    ( $line =~ s/^\s*E\w{8}:\s*//x ) { $log->error($line); }
+        elsif ( $line =~ s/^\s*W\w{8}:\s*//x ) { $log->warn($line); }
+        else { $line =~ s/^\s*I\w{8}:\s*//x; $log->info($line); }
     }
     close $L;
     unlink $logfile || $log->warn("Unable to delete $logfile");
@@ -486,17 +495,335 @@ This document describes CASCM::Wrapper version 0.01
 
 =head1 SYNOPSIS
 
+	use CASCM::Wrapper;
+
+	# Initialize
+	my $cascm = CASCM::Wrapper->new();
+
+	# Set Context
+	$cascm->set_context(
+	    {    # Set a global context. This is applied to all commands where required
+	       global => { b  => 'harvest',
+	                   eh => 'user.dfo',
+	       },
+
+	       # Set 'hco' specific context, applied only to hco commands
+	       hco => { up => 1,
+	                vp => '\repository\myapp\src',
+	                pn => 'Checkout Items',
+	       },
+
+	       # Similarly for 'hci'
+	       hci => { vp => '\repository\myapp\src',
+	                pn => 'Checkin Items',
+	                de => 'Shiny new feature',
+	       },
+
+	       # And 'hcp'
+	       hcp => { st => 'development',
+	                at => 'userid',
+	       },
+	    }
+	) or die $cascm->errstr;
+
+	# Create Package
+	my $pkg = 'new_package';
+	$cascm->hcp($pkg) or die $cascm->errstr;
+
+	# Checkout files
+	my @files = qw(foo.c bar.c);
+	$cascm->hco( { p => $pkg }, @files ) or die $cascm->errstr;
+
+	# Update Context
+	$cascm->update_context( { hci => { p => $pkg }, } ) or die $cascm->errstr;
+
+	# Checkin files
+	$cascm->hci(@files) or die $cascm->errstr;
+
 =head1 DESCRIPTION
+
+This module is a wrapper around CA-SCM (formerly known as Harvest) commands. It
+provides a I<perlish> interface to setting the context in which each command is
+executed, along with optional loading of context from files as well as parsing
+output logs.
+
+=head1 CONTEXT
+
+The context is a I<hash of hashes> which contain the following types of keys:
+
+=over
+
+=item global
+
+This specifies the I<global> context. Any context set here will be applied to
+every command that uses it.
+
+	my $global_context = {
+	                       global => { b  => 'harvest',
+	                                   eh => 'user.dfo',
+	                       },
+	  };
+
+=item command specific
+
+This provides a command specific context. Context set here will be applied only
+to those specific commands
+
+	my $hco_context = {
+	                    hco => { up => 1,
+	                             vp => '\repository\myapp\src',
+	                             pn => 'Checkout Items',
+	                    },
+	};
+
+=back
+
+The context items are synonymous with the command line options detailed in the
+CA-SCM Reference Manual. Options that do not require a value should be set to
+'1'. i.e. C<{hco => {up => 1} }> is equivalent of C<hco -up>.
+
+The 'common' options I<i> and I<di> are not applicable and ignored for all
+contexts. See L</SECURITY>
+
+The following methods are available to manage context
+
+=over
+
+=item set_context($context)
+
+Sets the context. Old context is forgotten. The argument provided must be a
+hash reference
+
+=item update_context($context)
+
+Updates the current context. The argument provided must be a hash reference
+
+=item load_context($file)
+
+This loads the context from an 'INI' file. The root parameters defines the
+global context. Each sectional parameter defines the command specific context.
+
+	# Load context file at initialization. This will croak if it fails to read the context file
+	my $cascm = CASCM::Wrapper->new( { context_file => $file } );
+
+	# Alternatively
+	$cascm->load_context($file) or die $cascm->errstr;
+
+This is a sample context file
+
+	# Sample context file
+
+	# Root parameters. These define the 'global' context
+	b  = harvest
+	eh = user.dfo
+
+	# Sectional parameters. These define the 'command' context
+
+	[hco]
+		up = 1
+		vp = \repository\myapp\src
+
+	[hcp]
+		st = development
+
+B<NOTE:> This method requires L<Config::Tiny> in order to read the context
+file.
+
+=item get_context
+
+Returns a hash reference of current context
+
+	my $context = $cascm->get_context();
+	use Data::Dumper;
+	print Dumper($context);
+
+=back
+
+=head1 CA-SCM METHODS
+
+Almost every 'h' command that uses a context is supported. The command names
+are synonymous with the methods used to invoke them.
+
+Every method accepts two optional arguments. The first is an hash reference
+that overrides/appends to the context for that method. This allows setting a
+context only for that specific call. The second is an array of arguments that
+is passed on to the 'h' command.
+
+	# No parameters. Everything required is already set in the context
+	$cascm->hdlp() or die $cascm->errstr;
+
+	# Array of arguments
+	$cascm->hci( @files ) or die $cascm->errstr;
+
+	# Override/Append to context
+	$cascm->hci( { p => 'new_package' }, @files ) or die $cascm->errstr;
+
+The methods can be called in a 'dry run' mode. Where the method returns the
+full command line, without executing anything. This can be useful for
+debugging.
+
+	$cascm = CASCM::Wrapper->new( { dry_run => 1 } );
+	$cascm->set_context($context);
+	$cmd = $cascm->hsync();
+	print "Calling hsync() would have executed -> $cmd";
+
+The following CA-SCM commands are available as methods
+
+	haccess
+	hap
+	har
+	hauthsync
+	hcbl
+	hccmrg
+	hcrrlte
+	hchgtype
+	hchu
+	hci
+	hcmpview
+	hco
+	hcp
+	hcpj
+	hcropmrg
+	hcrtpath
+	hdlp
+	hdp
+	hdv
+	hexecp
+	hexpenv
+	hfatt
+	hformsync
+	hft
+	hgetusg
+	himpenv
+	hlr
+	hlv
+	hmvitm
+	hmvpkg
+	hmvpth
+	hpg
+	hpkgunlk
+	hpp
+	hppolget
+	hppolset
+	hrefresh
+	hrepedit
+	hrepmngr
+	hri
+	hrmvpth
+	hrnitm
+	hrnpth
+	hrt
+	hsigget
+	hsigset
+	hsmtp
+	hspp
+	hsql
+	hsv
+	hsync
+	htakess
+	hudp
+	hup
+	husrmgr
+	husrunlk
+
+
+=head1 SECURITY
+
+This module uses the I<di> option for executing CA-SCM commands. This prevents
+any passwords from being exposed while the command is running. The temporary
+I<di> file is deleted irrespective if the outcome.
+
+=head1 LOGGING
+
+Since CA-SCM commands output only to log files, this module allows parsing and
+logging of a command's output. L<Log::Any> is required to use this feature,
+which in turn allows you to use any (supproted) Logging mechanism. When using
+this, any 'o' or 'oa' options specified in the context will be ignored. Your
+scripts will need to use the appropriate L<Log::Any::Adapter> to capture the
+log statements. The CA-SCM log is parsed and the messages are logged either as
+'INFO', 'WARNING' or 'ERROR'.
+
+	# Using Log4perl
+
+	use CASCM::Wrapper;
+	use Log::Log4perl;
+	use Log::Any::Adapter;
+
+	Log::Log4perl->init('log4perl.conf');
+	Log::Any::Adapter->set('Log4perl');
+
+	# Get logger
+	my $log = Log::Log4perl->get_logger();
+
+	# Set parse_logs to true. This will croak if Log:Any is not found.
+	my $cascm = CASCM::Wrapper( { parse_logs => 1 } );
+
+	# Set Context
+	my $context = { ... };
+	$cascm->set_context($context);
+
+	# Calling the method automatically will parse the log output into the Log4perl object
+	# The output is also logged in the 'CASCM::Wrapper' category.
+
+	$cascm->hco(@files) or die $cascm->errstr;
+
+=head1 ERROR HANDLING
+
+All methods return true on success and C<undef> on failure. The error that most
+likely caused a failure can be obtained by calling C<$cascm->errstr>
+
+=head1 INSTALLATION
+
+To install using L<Module::Build>, run the following
+
+	perl Build.PL
+	./Build
+	./Build test
+	./Build install
+
+To install using L<ExtUtils::MakeMaker>, run the following
+
+	perl Makefile.PL
+	make
+	make test
+	make install
+
+To install using L<CPAN>
+
+	cpan CASCM::Wrapper
 
 =head1 DEPENDENCIES
 
+CA-SCM r12 (or higher) client.
+
+The CA-SCM methods depends on the corresponding commands to be available in the
+I<PATH>
+
+At least Perl 5.6.1 is required to run.
+
+Optionally, L<Config::Tiny> is required to read context files
+
+Optionally, L<Log::Any> and L<Log::Any::Adapter> is required to parse CA-SCM
+log files
+
 =head1 BUGS AND LIMITATIONS
+
+This module has been written using the reference manual for CA-SCM r12 (Fix
+Pack 02) and tested against the same.
 
 No bugs have been reported.
 
-Please report any bugs or feature requests to
-C<bug-cascm-wrapper@rt.cpan.org>, or through the web interface at
-L<http://rt.cpan.org>.
+Please report any bugs or feature requests to C<bug-cascm-wrapper@rt.cpan.org>,
+or through the web interface at L<http://rt.cpan.org>.
+
+=head1 SOURCE
+
+The repository for CASCM::Wrapper is available at
+L<http://github.com/mithun/perl-cascm-wrapper>
+
+=head1 ACKNOWLEDGEMENTS
+
+Sean Blanton and Rachana Gaddam for their ideas and input.
 
 =head1 AUTHOR
 
@@ -504,32 +831,31 @@ Mithun Ayachit  C<< <mithun@cpan.org> >>
 
 =head1 LICENCE AND COPYRIGHT
 
-Copyright (c) 2010, Mithun Ayachit C<< <mithun@cpan.org> >>. All rights reserved.
+Copyright (c) 2010, Mithun Ayachit C<< <mithun@cpan.org> >>. All rights
+reserved.
 
-This module is free software; you can redistribute it and/or
-modify it under the same terms as Perl itself. See L<perlartistic>.
+This module is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself. See L<perlartistic>.
 
 =head1 DISCLAIMER OF WARRANTY
 
-BECAUSE THIS SOFTWARE IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
-FOR THE SOFTWARE, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN
-OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES
-PROVIDE THE SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
-EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE
-ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE SOFTWARE IS WITH
-YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL
-NECESSARY SERVICING, REPAIR, OR CORRECTION.
+BECAUSE THIS SOFTWARE IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY FOR THE
+SOFTWARE, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN OTHERWISE
+STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE
+SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND
+PERFORMANCE OF THE SOFTWARE IS WITH YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE,
+YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR, OR CORRECTION.
 
-IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
-WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
-REDISTRIBUTE THE SOFTWARE AS PERMITTED BY THE ABOVE LICENCE, BE
-LIABLE TO YOU FOR DAMAGES, INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL,
-OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE USE OR INABILITY TO USE
-THE SOFTWARE (INCLUDING BUT NOT LIMITED TO LOSS OF DATA OR DATA BEING
-RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD PARTIES OR A
-FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE), EVEN IF
-SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF
-SUCH DAMAGES.
+IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING WILL ANY
+COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR REDISTRIBUTE THE
+SOFTWARE AS PERMITTED BY THE ABOVE LICENCE, BE LIABLE TO YOU FOR DAMAGES,
+INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING
+OUT OF THE USE OR INABILITY TO USE THE SOFTWARE (INCLUDING BUT NOT LIMITED TO
+LOSS OF DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR
+THIRD PARTIES OR A FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE),
+EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGES.
 
 =cut
