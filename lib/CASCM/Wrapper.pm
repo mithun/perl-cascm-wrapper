@@ -492,7 +492,7 @@ __END__
 
 =head1 NAME
 
-CASCM::Wrapper - Run CASCM (Harvest) commands
+CASCM::Wrapper - Run CA-SCM (Harvest) commands
 
 =head1 VERSION
 
@@ -548,7 +548,7 @@ This document describes CASCM::Wrapper version 0.02
 =head1 DESCRIPTION
 
 This module is a wrapper around CA-SCM (formerly known as Harvest) commands. It
-provides a I<perlish> interface to setting the context in which each command is
+provides a perl-ish interface to setting the context in which each command is
 executed, along with optional loading of context from files as well as parsing
 output logs.
 
@@ -560,7 +560,7 @@ The context is a I<hash of hashes> which contain the following types of keys:
 
 =item global
 
-This specifies the I<global> context. Any context set here will be applied to
+This specifies the global context. Any context set here will be applied to
 every command that uses it.
 
 	my $global_context = {
@@ -572,7 +572,7 @@ every command that uses it.
 =item command specific
 
 This provides a command specific context. Context set here will be applied only
-to those specific commands
+to those specific commands.
 
 	my $hco_context = {
 	                    hco => { up => 1,
@@ -583,12 +583,15 @@ to those specific commands
 
 =back
 
-The context items are synonymous with the command line options detailed in the
-CA-SCM Reference Manual. Options that do not require a value should be set to
-'1'. i.e. C<{hco =\> {up => 1} }> is equivalent of C<hco -up>.
+The global and command context keys are synonymous with the command line
+options detailed in the CA-SCM Reference Manual. Options that do not require a
+value should be set to '1'. i.e. C<{hco =E<gt> {up =E<gt> 1} }> is equivalent
+to C<hco -up>. The methods are intelligent enough to apply only the context
+keys that are used by a command. For e.g. a global context of C<vp> will not
+apply to C<hcp>.
 
 The 'common' options I<i> and I<di> are not applicable and ignored for all
-contexts. See L</SECURITY>
+commands. See L</SECURITY>
 
 The following methods are available to manage context
 
@@ -605,6 +608,7 @@ Updates the current context. The argument provided must be a hash reference
 
 This loads the context from an 'INI' file. The root parameters defines the
 global context. Each sectional parameter defines the command specific context.
+Old context is forgotten.
 
 	# Load context file at initialization. This will croak if it fails to read the context file
 	my $cascm = CASCM::Wrapper->new( { context_file => $file } );
@@ -647,8 +651,9 @@ are synonymous with the methods used to invoke them.
 
 Every method accepts two optional arguments. The first is an hash reference
 that overrides/appends to the context for that method. This allows setting a
-context only for that specific call. The second is an array of arguments that
-is passed on to the 'h' command.
+context only for that specific method call. The second is an array of arguments
+that is passed on to the 'h' command. Any arguments provided is passed using
+the '-arg' option.
 
 	# No parameters. Everything required is already set in the context
 	$cascm->hdlp() or die $cascm->errstr;
@@ -732,7 +737,7 @@ The following CA-SCM commands are available as methods
 
 This module uses the I<di> option for executing CA-SCM commands. This prevents
 any passwords from being exposed while the command is running. The temporary
-I<di> file is deleted irrespective if the outcome.
+I<di> file is deleted irrespective if the outcome of the command.
 
 =head1 LOGGING
 
@@ -771,7 +776,8 @@ log statements. The CA-SCM log is parsed and the messages are logged either as
 =head1 ERROR HANDLING
 
 All methods return true on success and C<undef> on failure. The error that most
-likely caused a failure can be obtained by calling C<$cascm->errstr>
+likely caused the I<last> failure can be obtained by calling the C<errstr>
+method.
 
 =head1 INSTALLATION
 
@@ -795,7 +801,7 @@ To install using L<CPAN>
 
 =head1 DEPENDENCIES
 
-CA-SCM r12 (or higher) client.
+CA-SCM r12 client. Harvest 7.1 might work, but has not been tested.
 
 The CA-SCM methods depends on the corresponding commands to be available in the
 I<PATH>
@@ -809,8 +815,8 @@ log files
 
 =head1 BUGS AND LIMITATIONS
 
-This module has been written using the reference manual for CA-SCM r12 (Fix
-Pack 02) and tested against the same.
+This module has been written using the reference manual for CA-SCM r12 and
+tested against the same.
 
 No bugs have been reported.
 

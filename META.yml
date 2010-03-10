@@ -1,5 +1,5 @@
 ---
-abstract: 'Run CASCM (Harvest) commands'
+abstract: 'Run CA-SCM (Harvest) commands'
 author:
   - 'Mithun Ayachit <mithun@cpan.org>'
 configure_requires:
