@@ -13,7 +13,7 @@ name: CASCM-Wrapper
 provides:
   CASCM::Wrapper:
     file: lib/CASCM/Wrapper.pm
-    version: 0.02
+    version: 0.03
 recommends:
   Config::Tiny: 0
   Log::Any: 0
@@ -24,4 +24,4 @@ requires:
 resources:
   bugtracker: http://rt.cpan.org/NoAuth/Bugs.html?Dist=CASCM-Wrapper
   repository: http://github.com/mithun/perl-cascm-wrapper
-version: 0.02
+version: 0.03

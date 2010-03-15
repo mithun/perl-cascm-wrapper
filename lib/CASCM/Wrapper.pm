@@ -6,7 +6,7 @@ use strict;
 use Carp;
 
 ## Version
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 ## Logger
 our $log;
@@ -246,7 +246,7 @@ sub _run {
     my $context = { %{$global_context}, %{$cmd_context}, %{$run_context} };
 
     # Check if we're parsing logs
-    my $default_log = "${cmd}.log";
+    my $default_log = $cmd . time . ".log";
     if ($parse_log) {
         delete $context->{'o'}  if exists $context->{'o'};
         delete $context->{'oa'} if exists $context->{'oa'};
@@ -475,6 +475,8 @@ sub _parse_log {
         chomp;
         my $line = $_;
 
+        next if $line =~ /^[[:blank:]]$/;
+
         if    ( $line =~ s/^\s*E\w{8}:\s*//x ) { $log->error($line); }
         elsif ( $line =~ s/^\s*W\w{8}:\s*//x ) { $log->warn($line); }
         else { $line =~ s/^\s*I\w{8}:\s*//x; $log->info($line); }
@@ -496,7 +498,7 @@ CASCM::Wrapper - Run CA-SCM (Harvest) commands
 
 =head1 VERSION
 
-This document describes CASCM::Wrapper version 0.02
+This document describes CASCM::Wrapper version 0.03
 
 =head1 SYNOPSIS
 
