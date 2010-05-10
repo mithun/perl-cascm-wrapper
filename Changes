@@ -1,10 +1,12 @@
 Revision history for CASCM-Wrapper
 
-0.3    * Blank lines are no longer logged when using 'parse_logs'
-       * Renamed temporary log files used
+0.04    * Added CASCM r12.1 support
 
-0.2    * Fixed bug where '-arg' was being passed when there were no arguments
-       * Updated test cases
-       * Fixed typo in POD
+0.03    * Blank lines are no longer logged when using 'parse_logs'
+        * Renamed temporary log files used
 
-0.1    Initial Release
+0.02    * Fixed bug where '-arg' was being passed when there were no arguments
+        * Updated test cases
+        * Fixed typo in POD
+
+0.01    * Initial Release

@@ -45,6 +45,8 @@ my @commands = qw(
   hcpj
   hcropmrg
   hcrtpath
+  hdbgctrl
+  hdelss
   hdlp
   hdp
   hdv
@@ -81,6 +83,7 @@ my @commands = qw(
   hsv
   hsync
   htakess
+  hucache
   hudp
   hup
   husrmgr

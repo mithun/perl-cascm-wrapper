@@ -6,7 +6,7 @@ use strict;
 use Carp;
 
 ## Version
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 ## Logger
 our $log;
@@ -117,6 +117,8 @@ sub hcp       { return shift->_run( 'hcp',       @_ ); }
 sub hcpj      { return shift->_run( 'hcpj',      @_ ); }
 sub hcropmrg  { return shift->_run( 'hcropmrg',  @_ ); }
 sub hcrtpath  { return shift->_run( 'hcrtpath',  @_ ); }
+sub hdbgctrl  { return shift->_run( 'hdbgctrl',  @_ ); }
+sub hdelss    { return shift->_run( 'hdelss',    @_ ); }
 sub hdlp      { return shift->_run( 'hdlp',      @_ ); }
 sub hdp       { return shift->_run( 'hdp',       @_ ); }
 sub hdv       { return shift->_run( 'hdv',       @_ ); }
@@ -153,6 +155,7 @@ sub hsql      { return shift->_run( 'hsql',      @_ ); }
 sub hsv       { return shift->_run( 'hsv',       @_ ); }
 sub hsync     { return shift->_run( 'hsync',     @_ ); }
 sub htakess   { return shift->_run( 'htakess',   @_ ); }
+sub hucache   { return shift->_run( 'hucache',   @_ ); }
 sub hudp      { return shift->_run( 'hudp',      @_ ); }
 sub hup       { return shift->_run( 'hup',       @_ ); }
 sub husrmgr   { return shift->_run( 'husrmgr',   @_ ); }
@@ -298,7 +301,7 @@ sub _get_option_str {
 
     my @cmd_options = _get_cmd_options($cmd);
 
-    my $opt_str;
+    my $opt_str = q();
     foreach my $option (@cmd_options) {
         next unless $context->{$option};
         my $val = $context->{$option};
@@ -318,7 +321,7 @@ sub _get_cmd_options {
         'common'    => [qw(v o oa wts)],
         'haccess'   => [qw(b usr pw en rn ha ug ft eh)],
         'hap'       => [qw(b en st pn c usr pw rej eh)],
-        'har'       => [qw(b f m musr mpw usr pw eh er)],
+        'har'       => [qw(b f m musr mpw usr pw eh er rport)],
         'hauthsync' => [qw(b usr pw eh)],
         'hcbl'      => [qw(b en rp usr pw ss add rmr rdp rw eh st)],
         'hccmrg'    => [qw(b en st p usr pw mc ma tt tb pn eh)],
@@ -326,29 +329,32 @@ sub _get_cmd_options {
         'hchgtype'  => [qw(b rp usr pw bin txt q ext eh)],
         'hchu'      => [qw(b usr pw npw ousr eh)],
         'hci'       => [
-            qw(b en st p vp usr pw pn ur uk ro d nd de s op bo if ot ob dvp dcp cp rm rusr rpw eh er)
+            qw(b en st p vp usr pw pn ur uk ro d nd de s op bo if ot ob dvp dcp cp rm rusr rpw eh er rport tr)
         ],
         'hcmpview' =>
           [qw(b en1 en2 st1 vn1 vn2 vp1 vp2 usr pw uv1 uv2 cidc ciic s eh)],
         'hco' => [
-            qw(b en st vp p up br ro sy cu usr pw vn nvs nvf r replace nt ss s pf po bo to tb ced dvp dcp cp op pn rm rusr rpw eh er)
+            qw(b en st vp p up br ro sy cu usr pw vn nvs nvf r replace nt ss s pf po bo to tb ced dvp dcp cp op pn rm rusr rpw eh er rport tr)
         ],
         'hcp'      => [qw(b en st usr pw pn at eh)],
         'hcpj'     => [qw(b cpj npj act ina tem usr pw dac cug eh)],
         'hcropmrg' => [qw(b en1 en2 st1 st2 p1 p2 usr pw pn mo plo eh)],
         'hcrtpath' => [qw(b en st rp usr pw p cipn ot ob eh)],
+        'hdbgctrl' => [qw(b rm rport usr pw eh)],
+        'hdelss'   => [qw(b en usr pw eh)],
         'hdlp'     => [qw(b en pkgs st pn usr pw eh)],
         'hdp'      => [qw(b en st usr pw pn pb pd eh)],
         'hdv'      => [qw(b en st vp usr pw pn s eh)],
-        'hexecp'   => [qw(b prg m syn asyn usr pw args ma er)],
+        'hexecp'   => [qw(b prg m syn asyn usr pw args ma er rport)],
         'hexpenv'  => [qw(b en f usr pw eac cug eug eh)],
-        'hfatt' =>
-          [qw(b fn fid add rem get at usr pw ft comp cp rm rusr rpw eh er)],
+        'hfatt'    => [
+            qw(b fn fid add rem get at usr pw ft comp cp rm rusr rpw eh er rport)
+        ],
         'hformsync' => [qw(b all f d hfd usr pw eh)],
         'hft'       => [qw(fo a b fs)],
         'hgetusg'   => [qw(b usr pw pu cu)],
         'himpenv'   => [qw(b f usr pw iug eh)],
-        'hlr'       => [qw(b cp rp f usr pw rcep c rm rusr rpw eh er)],
+        'hlr'       => [qw(b cp rp f usr pw rcep c rm rusr rpw eh er rport)],
         'hlv'       => [qw(b en st vp usr pw vn pn s cd ac ss eh)],
         'hmvitm'    => [qw(b en st vp np p usr pw pn ot ob ur uk de eh)],
         'hmvpkg'    => [qw(b en st usr pw ph pn ten tst eh)],
@@ -363,13 +369,13 @@ sub _get_cmd_options {
             qw(b rp ppath tpath rnpath oldname newname usr pw all fo ismv isren eh)
         ],
         'hrepmngr' => [
-            qw(cr b usr pw nc coe mvs noext rext addext addvgrp addugrp addsgrp c fc del dup srn drn ndac ld cp rp r cep rm rusr rpw er ren oldname newname isv upd nc co appext nmvs gext remext remvgrp remugrp remsgrp appc mv srp drp all eh)
+            qw(cr b usr pw nc coe mvs noext rext addext addvgrp addugrp addsgrp c fc del dup srn drn ndac ld cp rp r cep rm rusr rpw er ren oldname newname isv upd nc co appext nmvs gext remext remvgrp remugrp remsgrp appc mv srp drp all eh rport)
         ],
         'hri'     => [qw(b en st usr pw vp pn ot ob p de eh)],
         'hrmvpth' => [qw(b en st vp p usr pw pn ot ob de eh)],
         'hrnitm'  => [qw(b en st vp on nn p usr pw pn ot ob ur uk de eh)],
         'hrnpth'  => [qw(b en st vp nn p usr pw pn ot ob ur uk de eh)],
-        'hrt'     => [qw(b f m musr mpw usr pw eh er)],
+        'hrt'     => [qw(b f m musr mpw usr pw eh er rport)],
         'hsigget' => [qw(a purge v t gl)],
         'hsigset' => [qw(context purge)],
         'hsmtp'   => [qw(m p f s d cc bcc)],
@@ -377,11 +383,13 @@ sub _get_cmd_options {
         'hsql'    => [qw(b f usr pw eh nh s t eh gl)],
         'hsv'     => [qw(b en vp usr pw st p iu io iv it ib id s eh gl)],
         'hsync'   => [
-            qw(b en st vp cp usr pw eh pn br sy av fv iv pl il iol ps pv ss bo to rm rusr rpw er purge excl excls)
+            qw(b en st vp cp usr pw eh pn br sy av fv iv pl il iol ps pv ss bo to rm rusr rpw er purge excl excls rport)
         ],
         'htakess' => [qw(b en st abv ss usr pw p po pb vp pg ve ts rs pn eh)],
-        'hudp'    => [qw(b en st usr pw pn ip ap eh)],
-        'hup'     => [
+        'hucache' =>
+          [qw(b en st ss purge vp usr pw cacheagent rusr rpw rport eh er)],
+        'hudp' => [qw(b en st usr pw pn ip ap eh)],
+        'hup'  => [
             qw(b en p usr pw npn at pr af apg rpg des nt rf ft afo rfo del cf eh)
         ],
         'husrmgr'  => [qw(b usr pw dlm ow nn cf du cpw swl ad ae eh)],
@@ -498,7 +506,7 @@ CASCM::Wrapper - Run CA-SCM (Harvest) commands
 
 =head1 VERSION
 
-This document describes CASCM::Wrapper version 0.03
+This document describes CASCM::Wrapper version 0.04
 
 =head1 SYNOPSIS
 
@@ -693,6 +701,8 @@ The following CA-SCM commands are available as methods
 	hcpj
 	hcropmrg
 	hcrtpath
+	hdbgctrl
+	hdelss
 	hdlp
 	hdp
 	hdv
@@ -729,6 +739,7 @@ The following CA-SCM commands are available as methods
 	hsv
 	hsync
 	htakess
+	hucache
 	hudp
 	hup
 	husrmgr
@@ -745,9 +756,9 @@ I<di> file is deleted irrespective if the outcome of the command.
 
 Since CA-SCM commands output only to log files, this module allows parsing and
 logging of a command's output. L<Log::Any> is required to use this feature,
-which in turn allows you to use any (supproted) Logging mechanism. When using
+which in turn allows you to use any (supported) Logging mechanism. When using
 this, any 'o' or 'oa' options specified in the context will be ignored. Your
-scripts will need to use the appropriate L<Log::Any::Adapter> to capture the
+scripts will need to load the appropriate L<Log::Any::Adapter> to capture the
 log statements. The CA-SCM log is parsed and the messages are logged either as
 'INFO', 'WARN' or 'ERROR'.
 
@@ -803,7 +814,7 @@ To install using L<CPAN>
 
 =head1 DEPENDENCIES
 
-CA-SCM r12 client. Harvest 7.1 might work, but has not been tested.
+CA-SCM r12 (or higher) client. Harvest 7.1 might work, but has not been tested.
 
 The CA-SCM methods depends on the corresponding commands to be available in the
 I<PATH>
@@ -816,9 +827,6 @@ Optionally, L<Log::Any> and L<Log::Any::Adapter> is required to parse CA-SCM
 log files
 
 =head1 BUGS AND LIMITATIONS
-
-This module has been written using the reference manual for CA-SCM r12 and
-tested against the same.
 
 No bugs have been reported.
 
