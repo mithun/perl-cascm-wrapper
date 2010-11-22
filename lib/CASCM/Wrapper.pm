@@ -3,10 +3,11 @@ package CASCM::Wrapper;
 use 5.006001;
 use warnings;
 use strict;
-use Carp;
+use Carp qw(croak);
+use File::Temp qw();
 
 ## Version
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 ## Logger
 our $log;
@@ -50,16 +51,14 @@ sub load_context {
         require Config::Tiny;
         Config::Tiny->import();
         return 1;
-      }
-      or do {
+    } or do {
         $self->_err(
-             "Please install Config::Tiny if you'd like to load context files");
+            "Please install Config::Tiny if you'd like to load context files");
         return;
-      };
+    };
 
     my $config = Config::Tiny->read($file)
-      || ( $self->_err("Error reading $file")
-           and return );
+      or do { $self->_err("Error reading $file") and return; };
 
     my $context = {};
     foreach ( keys %{$config} ) {
@@ -179,15 +178,17 @@ sub _init {
     if ( ref $options_ref ne 'HASH' ) { croak "Hash reference expected"; }
 
     # Set default options
-    my %default_options = ( 'context_file' => 0,
-                            'dry_run'      => 0,
-                            'parse_logs'   => 0,
+    my %default_options = (
+        'context_file' => 0,
+        'dry_run'      => 0,
+        'parse_logs'   => 0,
     );
 
     # Valid options
-    my %valid_options = ( 'context_file' => 1,
-                          'dry_run'      => 1,
-                          'parse_logs'   => 1,
+    my %valid_options = (
+        'context_file' => 1,
+        'dry_run'      => 1,
+        'parse_logs'   => 1,
     );
 
     # Read options
@@ -209,7 +210,7 @@ sub _init {
             require Log::Any;
             Log::Any->import(qw($log));
             return 1;
-          }
+        }
           or croak
           "Error loading Log::Any. Please install it if you'd like to parse logs";
     }
@@ -249,20 +250,20 @@ sub _run {
     my $context = { %{$global_context}, %{$cmd_context}, %{$run_context} };
 
     # Check if we're parsing logs
-    my $default_log = $cmd . time . ".log";
+    my $default_log = File::Temp->new()->filename;
     if ($parse_log) {
+
+        # Remove existing 'o' & 'oa' from context
         delete $context->{'o'}  if exists $context->{'o'};
         delete $context->{'oa'} if exists $context->{'oa'};
+
+        # Set default log
         $context->{'o'} = $default_log;
     }
 
     # Build argument string
-    my $arg_str = '';
-    if (@args) {
-        $arg_str = "-arg ";
-        $arg_str .= "$_ " for @args;
-        $arg_str =~ s{\s+$}{}g;
-    }
+    my $arg_str = q();
+    if (@args) { $arg_str = join( ' ', '-arg', @args ); }
 
     # Get option string for $cmd
     my $opt_str = $self->_get_option_str( $cmd, $context );
@@ -271,12 +272,10 @@ sub _run {
     if ($dry_run) { return "$cmd $arg_str $opt_str"; }
 
     # Prepare DI file
-    my $di_file = "${cmd}.di." . time . ".tmp";
-    open my $DIF, '>',
-      $di_file || ( $self->_err("Unable to create $di_file") and return );
-    print $DIF "$arg_str $opt_str"
-      || ( $self->_err("Unable to write to $di_file") and return );
-    close $DIF;
+    my $DIF = File::Temp->new( UNLINK => 0 );
+    my $di_file = $DIF->filename;
+    print( $DIF "$arg_str $opt_str" )
+      or do { $self->_err("Unable to write to $di_file") and return; };
 
     # Run command
     my $cmd_str = "$cmd -di \"${di_file}\"";
@@ -301,16 +300,15 @@ sub _get_option_str {
 
     my @cmd_options = _get_cmd_options($cmd);
 
-    my $opt_str = q();
+    my @opt_args = qw();
     foreach my $option (@cmd_options) {
         next unless $context->{$option};
         my $val = $context->{$option};
-        if   ( $val eq '1' ) { $opt_str .= "-${option} "; }
-        else                 { $opt_str .= "-${option} ${val} "; }
+        if   ( $val eq '1' ) { push @opt_args, "-${option}"; }
+        else                 { push @opt_args, "-${option}", $val; }
     }
 
-    $opt_str =~ s{\s+$}{}g;
-    return $opt_str;
+    return join( ' ', @opt_args );
 }
 
 # Command options
@@ -414,7 +412,7 @@ sub _handle_error {
         '1' =>
           "Command syntax for $cmd is incorrect. Please check your context setting",
         '2'  => 'Broker not connected',
-        '3'  => "The command $cmd failed in some anticipated way",
+        '3'  => "$cmd failed",
         '4'  => 'Unexpected error',
         '5'  => 'Invalid login',
         '6'  => 'Server or database down',
@@ -477,20 +475,20 @@ sub _parse_log {
         return 1;
     }
 
-    open my $L, '<',
-      $logfile || ( $log->error("Unable to read $logfile") and return 1 );
+    open( my $L, '<', $logfile )
+      or do { $log->error("Unable to read $logfile") and return 1; };
     while (<$L>) {
-        chomp;
         my $line = $_;
-
+        chomp $line;
+        next unless $line;
         next if $line =~ /^[[:blank:]]$/;
 
-        if    ( $line =~ s/^\s*E\w{8}:\s*//x ) { $log->error($line); }
-        elsif ( $line =~ s/^\s*W\w{8}:\s*//x ) { $log->warn($line); }
-        else { $line =~ s/^\s*I\w{8}:\s*//x; $log->info($line); }
+        if    ( $line =~ s/^\s*E0\w{7}:\s*//x ) { $log->error($line); }
+        elsif ( $line =~ s/^\s*W0\w{7}:\s*//x ) { $log->warn($line); }
+        else { $line =~ s/^\s*I0\w{7}:\s*//x; $log->info($line); }
     }
     close $L;
-    unlink $logfile || $log->warn("Unable to delete $logfile");
+    unlink($logfile) or $log->warn("Unable to delete $logfile");
     return 1;
 }
 
@@ -506,7 +504,7 @@ CASCM::Wrapper - Run CA-SCM (Harvest) commands
 
 =head1 VERSION
 
-This document describes CASCM::Wrapper version 0.04
+This document describes CASCM::Wrapper version 0.05
 
 =head1 SYNOPSIS
 

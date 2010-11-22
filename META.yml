@@ -4,7 +4,7 @@ author:
   - 'Mithun Ayachit <mithun@cpan.org>'
 configure_requires:
   Module::Build: 0.36
-generated_by: 'Module::Build version 0.3603'
+generated_by: 'Module::Build version 0.3607'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -13,15 +13,16 @@ name: CASCM-Wrapper
 provides:
   CASCM::Wrapper:
     file: lib/CASCM/Wrapper.pm
-    version: 0.04
+    version: 0.05
 recommends:
   Config::Tiny: 0
   Log::Any: 0
   Log::Any::Adapter: 0
 requires:
+  File::Temp: 0.16
   Test::More: 0
   perl: 5.006001
 resources:
   bugtracker: http://rt.cpan.org/NoAuth/Bugs.html?Dist=CASCM-Wrapper
   repository: http://github.com/mithun/perl-cascm-wrapper
-version: 0.04
+version: 0.05

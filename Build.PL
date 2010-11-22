@@ -9,6 +9,7 @@ my $builder = Module::Build->new(
             dist_version_from => 'lib/CASCM/Wrapper.pm',
             requires          => {
                           'perl'       => '5.006001',
+                          'File::Temp' => '0.16',
                           'Test::More' => 0,
             },
             recommends => { 'Config::Tiny'      => 0,

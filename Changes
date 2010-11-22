@@ -1,5 +1,7 @@
 Revision history for CASCM-Wrapper
 
+0.05    * Temporary logs & DI files are now created using File::Temp
+
 0.04    * Added CASCM r12.1 support
 
 0.03    * Blank lines are no longer logged when using 'parse_logs'
