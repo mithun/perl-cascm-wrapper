@@ -1,0 +1,27 @@
+Installing CASCM-Wrapper
+Mithun Ayachit
+
+
+Distribution page
+=================
+
+The latest and all previous releases for CASCM-Wrapper can be downloaded
+from https://metacpan.org/release/CASCM-Wrapper
+
+Install using cpanm
+===================
+
+CASCM-Wrapper can be installed with cpanm using the following command
+
+    cpanm .
+
+Install using Module::Build
+===========================
+
+CASCM-Wrapper can be installed with Module::Build using the following
+commands
+
+    perl ./Build.PL
+    ./Build
+    ./Build test
+    ./Build install

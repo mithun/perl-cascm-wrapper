@@ -31,13 +31,15 @@ my $ctx_file = File::Spec->catfile( 't', 'data', 'scm_context.ini' );
 my $cascm = new_ok( $module, [ { context_file => $ctx_file } ] ) or exit;
 
 my $expected = {
-                 global => { b  => 'harvest',
-                             eh => 'my_creds.dfo',
-                 },
-                 hco => { vp => '\repo\myapp\src',
-                          up => 1,
-                 },
-                 hcp => { st => 'dev', },
+    global => {
+        b  => 'harvest',
+        eh => 'my_creds.dfo',
+    },
+    hco => {
+        vp => '\repo\myapp\src',
+        up => 1,
+    },
+    hcp => { st => 'dev', },
 };
 
 is_deeply( $cascm->get_context, $expected );
