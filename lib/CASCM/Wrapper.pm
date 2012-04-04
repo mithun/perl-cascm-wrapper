@@ -1,20 +1,31 @@
 package CASCM::Wrapper;
 
+#######################
+# LOAD MODULES
+#######################
 use 5.006001;
-use warnings;
+
 use strict;
-use Carp qw(croak);
+use warnings FATAL => 'all';
+
 use File::Temp qw();
+use Carp qw(croak carp);
 
-## Version
-our $VERSION = '0.05';
+#######################
+# VERSION
+#######################
+our $VERSION = '0.06';
 
-## Logger
+#######################
+# SETTINGS
+#######################
+
+# Logger
 our $log;
 
-####################
-## Module Methods ##
-####################
+#######################
+# MODULE METHODS
+#######################
 
 # Constructor
 sub new {
@@ -24,7 +35,7 @@ sub new {
     my $self = {};
     bless $self, $class;
     return $self->_init($options_ref);
-}
+} ## end sub new
 
 # Set Context
 sub set_context {
@@ -38,12 +49,13 @@ sub set_context {
 
     $self->{_context} = $context;
     return 1;
-}
+} ## end sub set_context
 
 # load context
 sub load_context {
     my $self = shift;
-    my $file = shift || ( $self->_err("File required but missing") and return );
+    my $file = shift
+        || ( $self->_err("File required but missing") and return );
 
     if ( not -f $file ) { $self->_err("File $file does not exist"); return; }
 
@@ -53,12 +65,13 @@ sub load_context {
         return 1;
     } or do {
         $self->_err(
-            "Please install Config::Tiny if you'd like to load context files");
+            "Please install Config::Tiny if you'd like to load context files"
+        );
         return;
     };
 
     my $config = Config::Tiny->read($file)
-      or do { $self->_err("Error reading $file") and return; };
+        or do { $self->_err("Error reading $file") and return; };
 
     my $context = {};
     foreach ( keys %{$config} ) {
@@ -67,7 +80,7 @@ sub load_context {
     }
 
     return $self->set_context($context);
-}
+} ## end sub load_context
 
 # Update Context
 sub update_context {
@@ -88,7 +101,7 @@ sub update_context {
     }
 
     return $self->set_context($context);
-}
+} ## end sub update_context
 
 # Get context
 sub get_context { return shift->{_context}; }
@@ -96,9 +109,9 @@ sub get_context { return shift->{_context}; }
 # Get error message
 sub errstr { return shift->{_errstr}; }
 
-###################
-## CASCM Methods ##
-###################
+#######################
+# CASCM METHODS
+#######################
 
 sub haccess   { return shift->_run( 'haccess',   @_ ); }
 sub hap       { return shift->_run( 'hap',       @_ ); }
@@ -160,9 +173,9 @@ sub hup       { return shift->_run( 'hup',       @_ ); }
 sub husrmgr   { return shift->_run( 'husrmgr',   @_ ); }
 sub husrunlk  { return shift->_run( 'husrunlk',  @_ ); }
 
-######################
-## Internal Methods ##
-######################
+#######################
+# INTERNAL METHODS
+#######################
 
 # Object initialization
 sub _init {
@@ -201,7 +214,7 @@ sub _init {
     # Set context
     if ( $options{'context_file'} ) {
         $self->load_context( $options{'context_file'} )
-          or croak "Error Loading Context file : " . $self->errstr();
+            or croak "Error Loading Context file : " . $self->errstr();
     }
 
     # Check if we're parsing logs
@@ -211,13 +224,13 @@ sub _init {
             Log::Any->import(qw($log));
             return 1;
         }
-          or croak
-          "Error loading Log::Any. Please install it if you'd like to parse logs";
-    }
+            or croak
+            "Error loading Log::Any. Please install it if you'd like to parse logs";
+    } ## end if ( $options{'parse_logs'...})
 
     # Done initliazing
     return $self;
-}
+} ## end sub _init
 
 # Set error
 sub _err {
@@ -225,7 +238,7 @@ sub _err {
     my $msg  = shift;
     $self->{_errstr} = $msg;
     return 1;
-}
+} ## end sub _err
 
 # Execute command
 sub _run {
@@ -259,7 +272,7 @@ sub _run {
 
         # Set default log
         $context->{'o'} = $default_log;
-    }
+    } ## end if ($parse_log)
 
     # Build argument string
     my $arg_str = q();
@@ -275,7 +288,7 @@ sub _run {
     my $DIF = File::Temp->new( UNLINK => 0 );
     my $di_file = $DIF->filename;
     print( $DIF "$arg_str $opt_str" )
-      or do { $self->_err("Unable to write to $di_file") and return; };
+        or do { $self->_err("Unable to write to $di_file") and return; };
 
     # Run command
     my $cmd_str = "$cmd -di \"${di_file}\"";
@@ -290,7 +303,7 @@ sub _run {
 
     # Return
     return $self->_handle_error( $cmd, $rc, $out );
-}
+} ## end sub _run
 
 # Get option string
 sub _get_option_str {
@@ -306,99 +319,86 @@ sub _get_option_str {
         my $val = $context->{$option};
         if   ( $val eq '1' ) { push @opt_args, "-${option}"; }
         else                 { push @opt_args, "-${option}", $val; }
-    }
+    } ## end foreach my $option (@cmd_options)
 
     return join( ' ', @opt_args );
-}
+} ## end sub _get_option_str
 
 # Command options
 sub _get_cmd_options {
     my $cmd = shift;
 
+#<<< Don't touch this ...
+
     my $options = {
         'common'    => [qw(v o oa wts)],
-        'haccess'   => [qw(b usr pw en rn ha ug ft eh)],
-        'hap'       => [qw(b en st pn c usr pw rej eh)],
-        'har'       => [qw(b f m musr mpw usr pw eh er rport)],
-        'hauthsync' => [qw(b usr pw eh)],
-        'hcbl'      => [qw(b en rp usr pw ss add rmr rdp rw eh st)],
-        'hccmrg'    => [qw(b en st p usr pw mc ma tt tb pn eh)],
-        'hcrrlte'   => [qw(b en usr pw epid epname d eh)],
-        'hchgtype'  => [qw(b rp usr pw bin txt q ext eh)],
-        'hchu'      => [qw(b usr pw npw ousr eh)],
-        'hci'       => [
-            qw(b en st p vp usr pw pn ur uk ro d nd de s op bo if ot ob dvp dcp cp rm rusr rpw eh er rport tr)
-        ],
-        'hcmpview' =>
-          [qw(b en1 en2 st1 vn1 vn2 vp1 vp2 usr pw uv1 uv2 cidc ciic s eh)],
-        'hco' => [
-            qw(b en st vp p up br ro sy cu usr pw vn nvs nvf r replace nt ss s pf po bo to tb ced dvp dcp cp op pn rm rusr rpw eh er rport tr)
-        ],
-        'hcp'      => [qw(b en st usr pw pn at eh)],
-        'hcpj'     => [qw(b cpj npj act ina tem usr pw dac cug eh)],
-        'hcropmrg' => [qw(b en1 en2 st1 st2 p1 p2 usr pw pn mo plo eh)],
-        'hcrtpath' => [qw(b en st rp usr pw p cipn ot ob eh)],
-        'hdbgctrl' => [qw(b rm rport usr pw eh)],
-        'hdelss'   => [qw(b en usr pw eh)],
-        'hdlp'     => [qw(b en pkgs st pn usr pw eh)],
-        'hdp'      => [qw(b en st usr pw pn pb pd eh)],
-        'hdv'      => [qw(b en st vp usr pw pn s eh)],
-        'hexecp'   => [qw(b prg m syn asyn usr pw args ma er rport)],
-        'hexpenv'  => [qw(b en f usr pw eac cug eug eh)],
-        'hfatt'    => [
-            qw(b fn fid add rem get at usr pw ft comp cp rm rusr rpw eh er rport)
-        ],
-        'hformsync' => [qw(b all f d hfd usr pw eh)],
         'hft'       => [qw(fo a b fs)],
+        'hauthsync' => [qw(b usr pw eh)],
+        'husrunlk'  => [qw(b usr pw eh)],
+        'hsigset'   => [qw(context purge)],
+        'hdelss'    => [qw(b en usr pw eh)],
         'hgetusg'   => [qw(b usr pw pu cu)],
-        'himpenv'   => [qw(b f usr pw iug eh)],
-        'hlr'       => [qw(b cp rp f usr pw rcep c rm rusr rpw eh er rport)],
-        'hlv'       => [qw(b en st vp usr pw vn pn s cd ac ss eh)],
-        'hmvitm'    => [qw(b en st vp np p usr pw pn ot ob ur uk de eh)],
-        'hmvpkg'    => [qw(b en st usr pw ph pn ten tst eh)],
-        'hmvpth'    => [qw(b en st vp np p usr pw pn ot ob ur uk de eh)],
-        'hpg'       => [qw(b en pg usr pw st bp cpg dpg app dpp eh)],
         'hpkgunlk'  => [qw(b en usr pw eh)],
-        'hpp'       => [qw(b en st usr pw pb pm pd pn eh)],
+        'hsigget'   => [qw(a purge v t gl)],
         'hppolget'  => [qw(b usr pw f eh gl)],
         'hppolset'  => [qw(b usr pw fc eh f)],
+        'hsmtp'     => [qw(m p f s d cc bcc)],
+        'himpenv'   => [qw(b f usr pw iug eh)],
+        'hchu'      => [qw(b usr pw npw ousr eh)],
+        'hdbgctrl'  => [qw(b rm rport usr pw eh)],
+        'hcp'       => [qw(b en st usr pw pn at eh)],
+        'hformsync' => [qw(b all f d hfd usr pw eh)],
+        'hdlp'      => [qw(b en pkgs st pn usr pw eh)],
+        'hdv'       => [qw(b en st vp usr pw pn s eh)],
+        'haccess'   => [qw(b usr pw en rn ha ug ft eh)],
+        'hap'       => [qw(b en st pn c usr pw rej eh)],
+        'hdp'       => [qw(b en st usr pw pn pb pd eh)],
+        'hsql'      => [qw(b f usr pw eh nh s t eh gl)],
+        'hudp'      => [qw(b en st usr pw pn ip ap eh)],
+        'hchgtype'  => [qw(b rp usr pw bin txt q ext eh)],
+        'hcrrlte'   => [qw(b en usr pw epid epname d eh)],
+        'hexpenv'   => [qw(b en f usr pw eac cug eug eh)],
+        'hspp'      => [qw(fp tp b en st pn usr pw s eh)],
+        'hpp'       => [qw(b en st usr pw pb pm pd pn eh)],
+        'hmvpkg'    => [qw(b en st usr pw ph pn ten tst eh)],
+        'har'       => [qw(b f m musr mpw usr pw eh er rport)],
+        'hrt'       => [qw(b f m musr mpw usr pw eh er rport)],
+        'hccmrg'    => [qw(b en st p usr pw mc ma tt tb pn eh)],
+        'hri'       => [qw(b en st usr pw vp pn ot ob p de eh)],
+        'hrmvpth'   => [qw(b en st vp p usr pw pn ot ob de eh)],
+        'hcrtpath'  => [qw(b en st rp usr pw p cipn ot ob eh de)],
         'hrefresh'  => [qw(b pr st nst iv pl ps pv debug nolock)],
-        'hrepedit'  => [
-            qw(b rp ppath tpath rnpath oldname newname usr pw all fo ismv isren eh)
-        ],
-        'hrepmngr' => [
-            qw(cr b usr pw nc coe mvs noext rext addext addvgrp addugrp addsgrp c fc del dup srn drn ndac ld cp rp r cep rm rusr rpw er ren oldname newname isv upd nc co appext nmvs gext remext remvgrp remugrp remsgrp appc mv srp drp all eh rport)
-        ],
-        'hri'     => [qw(b en st usr pw vp pn ot ob p de eh)],
-        'hrmvpth' => [qw(b en st vp p usr pw pn ot ob de eh)],
-        'hrnitm'  => [qw(b en st vp on nn p usr pw pn ot ob ur uk de eh)],
-        'hrnpth'  => [qw(b en st vp nn p usr pw pn ot ob ur uk de eh)],
-        'hrt'     => [qw(b f m musr mpw usr pw eh er rport)],
-        'hsigget' => [qw(a purge v t gl)],
-        'hsigset' => [qw(context purge)],
-        'hsmtp'   => [qw(m p f s d cc bcc)],
-        'hspp'    => [qw(fp tp b en st pn usr pw s eh)],
-        'hsql'    => [qw(b f usr pw eh nh s t eh gl)],
-        'hsv'     => [qw(b en vp usr pw st p iu io iv it ib id s eh gl)],
-        'hsync'   => [
-            qw(b en st vp cp usr pw eh pn br sy av fv iv pl il iol ps pv ss bo to rm rusr rpw er purge excl excls rport)
-        ],
-        'htakess' => [qw(b en st abv ss usr pw p po pb vp pg ve ts rs pn eh)],
-        'hucache' =>
-          [qw(b en st ss purge vp usr pw cacheagent rusr rpw rport eh er)],
-        'hudp' => [qw(b en st usr pw pn ip ap eh)],
-        'hup'  => [
-            qw(b en p usr pw npn at pr af apg rpg des nt rf ft afo rfo del cf eh)
-        ],
-        'husrmgr'  => [qw(b usr pw dlm ow nn cf du cpw swl ad ae eh)],
-        'husrunlk' => [qw(b usr pw eh)],
+        'hlv'       => [qw(b en st vp usr pw vn pn s cd ac ss eh)],
+        'hcbl'      => [qw(b en rp usr pw ss add rmr rdp rw eh st)],
+        'hcpj'      => [qw(b cpj npj act ina tem usr pw dac cug eh)],
+        'hpg'       => [qw(b en pg usr pw st bp cpg dpg app dpp eh)],
+        'hexecp'    => [qw(b prg m syn asyn usr pw args ma er rport)],
+        'husrmgr'   => [qw(b usr pw dlm ow nn cf du cpw swl ad ae eh)],
+        'hmvitm'    => [qw(b en st vp np p usr pw pn ot ob ur uk de eh)],
+        'hmvpth'    => [qw(b en st vp np p usr pw pn ot ob ur uk de eh)],
+        'hrnpth'    => [qw(b en st vp nn p usr pw pn ot ob ur uk de eh)],
+        'hsv'       => [qw(b en vp usr pw st p iu io iv it ib id s eh gl)],
+        'hrnitm'    => [qw(b en st vp on nn p usr pw pn ot ob ur uk de eh)],
+        'hcropmrg'  => [qw(b en1 en2 st1 st2 p1 p2 usr pw pn mo plo eh vfs)],
+        'hlr'       => [qw(b cp rp f usr pw rcep c rm rusr rpw eh er rport)],
+        'htakess'   => [qw(b en st abv ss usr pw p po pb vp pg ve ts rs pn eh)],
+        'hucache'   => [qw(b en st ss purge vp usr pw cacheagent rusr rpw rport eh er)],
+        'hcmpview'  => [qw(b en1 en2 st1 vn1 vn2 vp1 vp2 usr pw uv1 uv2 cidc ciic s eh)],
+        'hfatt'     => [qw(b fn fid add rem get at usr pw ft comp cp rm rusr rpw eh er rport)],
+        'hup'       => [qw(b en p usr pw npn at pr af apg rpg des nt rf ft afo rfo del cf eh)],
+        'hrepedit'  => [qw(b rp ppath tpath rnpath oldname newname usr pw all fo ismv isren eh)],
+        'hci'       => [qw(b en st p vp usr pw pn ur uk ro d nd de s op bo if ot ob dvp dcp cp rm rusr rpw eh er rport tr)],
+        'hsync'     => [qw(b en st vp cp usr pw eh pn br sy av fv iv pl il iol ps pv ss bo to tb rm rusr rpw er purge excl excls rport ced complete)],
+        'hco'       => [qw(b en st vp p up br ro sy cu usr pw vn nvs nvf r replace nt ss s pf po bo to tb ced dvp dcp cp op pn rm rusr rpw eh er rport tr)],
+        'hrepmngr'  => [qw(cr b usr pw nc coe mvs noext rext addext addvgrp addugrp addsgrp c fc del dup srn drn ndac ld cp rp r cep rm rusr rpw er ren oldname newname isv upd nc co appext nmvs gext remext remvgrp remugrp remsgrp appc mv srp drp all eh rport)],
     };
 
+#>>>
     my @cmd_options =
-      sort { lc $a cmp lc $b }
-      ( @{ $options->{common} }, @{ $options->{$cmd} } );
+        sort { lc $a cmp lc $b }
+        ( @{ $options->{common} }, @{ $options->{$cmd} } );
     return @cmd_options;
-}
+} ## end sub _get_cmd_options
 
 # Handle error/return
 sub _handle_error {
@@ -410,7 +410,7 @@ sub _handle_error {
     # Standard cases
     my %error = (
         '1' =>
-          "Command syntax for $cmd is incorrect. Please check your context setting",
+            "Command syntax for $cmd is incorrect. Please check your context setting",
         '2'  => 'Broker not connected',
         '3'  => "$cmd failed",
         '4'  => 'Unexpected error',
@@ -430,21 +430,22 @@ sub _handle_error {
         %error = (
             %error,
             '94' =>
-              'Password changes executed from the command line using hchu are disabled when external authentication is enabled',
+                'Password changes executed from the command line using hchu are disabled when external authentication is enabled',
         );
-    }
+    } ## end if ( $cmd eq 'hchu' )
     elsif ( $cmd eq 'hco' ) {
         %error = (
-            %error, '14' => 'No version was found for the file name or pattern',
+            %error,
+            '14' => 'No version was found for the file name or pattern',
         );
-    }
+    } ## end elsif ( $cmd eq 'hco' )
     elsif ( $cmd eq 'hexecp' ) {
         %error = (
             %error,
             '2' =>
-              'Broker not connected OR the invoked program did not return a value of its own',
+                'Broker not connected OR the invoked program did not return a value of its own',
         );
-    }
+    } ## end elsif ( $cmd eq 'hexecp' )
 
     # Get error message
     my $msg;
@@ -453,18 +454,18 @@ sub _handle_error {
         $msg .= " : $out" if $out;
         $self->_err($msg);
         return;
-    }
+    } ## end if ( $rc == -1 )
     elsif ( $rc > 0 ) {
         $rc >>= 8;
         $msg = $error{$rc} || "Uknown error";
         $msg .= " : $out" if $out;
         $self->_err($msg);
         return;
-    }
+    } ## end elsif ( $rc > 0 )
 
     # Return true
     return 1;
-}
+} ## end sub _handle_error
 
 # Parse Log
 sub _parse_log {
@@ -476,7 +477,7 @@ sub _parse_log {
     }
 
     open( my $L, '<', $logfile )
-      or do { $log->error("Unable to read $logfile") and return 1; };
+        or do { $log->error("Unable to read $logfile") and return 1; };
     while (<$L>) {
         my $line = $_;
         chomp $line;
@@ -485,28 +486,27 @@ sub _parse_log {
 
         if    ( $line =~ s/^\s*E0\w{7}:\s*//x ) { $log->error($line); }
         elsif ( $line =~ s/^\s*W0\w{7}:\s*//x ) { $log->warn($line); }
-        else { $line =~ s/^\s*I0\w{7}:\s*//x; $log->info($line); }
-    }
+        elsif ( $line =~ s/^\s*I0\w{7}:\s*//x ) { $log->info($line); }
+        else                                    { $log->info($line); }
+    } ## end while (<$L>)
     close $L;
     unlink($logfile) or $log->warn("Unable to delete $logfile");
     return 1;
-}
+} ## end sub _parse_log
 
-#################
-1;    # Magic true value required at end of module
+#######################
+1;
+
 __END__
 
+#######################
+# POD SECTION
+#######################
 =pod
 
 =head1 NAME
 
 CASCM::Wrapper - Run CA-SCM (Harvest) commands
-
-=head1 VERSION
-
-This document describes CASCM::Wrapper version 0.05
-
-=head1 SYNOPSIS
 
 	use CASCM::Wrapper;
 
@@ -683,65 +683,65 @@ debugging.
 
 The following CA-SCM commands are available as methods
 
-	haccess
 	hap
 	har
-	hauthsync
-	hcbl
-	hccmrg
-	hcrrlte
-	hchgtype
-	hchu
 	hci
-	hcmpview
 	hco
 	hcp
-	hcpj
-	hcropmrg
-	hcrtpath
-	hdbgctrl
-	hdelss
-	hdlp
 	hdp
 	hdv
-	hexecp
-	hexpenv
-	hfatt
-	hformsync
 	hft
-	hgetusg
-	himpenv
 	hlr
 	hlv
+	hpg
+	hpp
+	hri
+	hrt
+	hsv
+	hup
+	hcbl
+	hchu
+	hcpj
+	hdlp
+	hspp
+	hsql
+	hudp
+	hfatt
+	hsmtp
+	hsync
+	hccmrg
+	hdelss
+	hexecp
 	hmvitm
 	hmvpkg
 	hmvpth
-	hpg
+	hrnitm
+	hrnpth
+	haccess
+	hcrrlte
+	hexpenv
+	hgetusg
+	himpenv
+	hrmvpth
+	hsigget
+	hsigset
+	htakess
+	hucache
+	husrmgr
+	husrunlk
+	hchgtype
+	hcmpview
+	hcropmrg
+	hcrtpath
+	hdbgctrl
 	hpkgunlk
-	hpp
 	hppolget
 	hppolset
 	hrefresh
 	hrepedit
 	hrepmngr
-	hri
-	hrmvpth
-	hrnitm
-	hrnpth
-	hrt
-	hsigget
-	hsigset
-	hsmtp
-	hspp
-	hsql
-	hsv
-	hsync
-	htakess
-	hucache
-	hudp
-	hup
-	husrmgr
-	husrunlk
+	hauthsync
+	hformsync
 
 
 =head1 SECURITY
@@ -790,26 +790,6 @@ All methods return true on success and C<undef> on failure. The error that most
 likely caused the I<last> failure can be obtained by calling the C<errstr>
 method.
 
-=head1 INSTALLATION
-
-To install using L<Module::Build>, run the following
-
-	perl Build.PL
-	./Build
-	./Build test
-	./Build install
-
-To install using L<ExtUtils::MakeMaker>, run the following
-
-	perl Makefile.PL
-	make
-	make test
-	make install
-
-To install using L<CPAN>
-
-	cpan CASCM::Wrapper
-
 =head1 DEPENDENCIES
 
 CA-SCM r12 (or higher) client. Harvest 7.1 might work, but has not been tested.
@@ -826,51 +806,19 @@ log files
 
 =head1 BUGS AND LIMITATIONS
 
-No bugs have been reported.
-
-Please report any bugs or feature requests to C<bug-cascm-wrapper@rt.cpan.org>,
-or through the web interface at L<http://rt.cpan.org>.
-
-=head1 SOURCE
-
-The repository for CASCM::Wrapper is available at
-L<http://github.com/mithun/perl-cascm-wrapper>
-
-=head1 ACKNOWLEDGEMENTS
-
-Sean Blanton and Rachana Gaddam for their ideas and input.
+Please report any bugs or feature requests to
+C<bug-cascm-wrapper@rt.cpan.org>, or through the web interface at
+L<http://rt.cpan.org/Public/Dist/Display.html?Name=CASCM-Wrapper>
 
 =head1 AUTHOR
 
-Mithun Ayachit  C<< <mithun@cpan.org> >>
+Mithun Ayachit C<mithun@cpan.org>
 
-=head1 LICENCE AND COPYRIGHT
+=head1 LICENSE AND COPYRIGHT
 
-Copyright (c) 2010, Mithun Ayachit C<< <mithun@cpan.org> >>. All rights
-reserved.
+Copyright (c) 2012, Mithun Ayachit. All rights reserved.
 
 This module is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself. See L<perlartistic>.
-
-=head1 DISCLAIMER OF WARRANTY
-
-BECAUSE THIS SOFTWARE IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY FOR THE
-SOFTWARE, TO THE EXTENT PERMITTED BY APPLICABLE LAW. EXCEPT WHEN OTHERWISE
-STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE
-SOFTWARE "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
-INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
-FITNESS FOR A PARTICULAR PURPOSE. THE ENTIRE RISK AS TO THE QUALITY AND
-PERFORMANCE OF THE SOFTWARE IS WITH YOU. SHOULD THE SOFTWARE PROVE DEFECTIVE,
-YOU ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR, OR CORRECTION.
-
-IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING WILL ANY
-COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR REDISTRIBUTE THE
-SOFTWARE AS PERMITTED BY THE ABOVE LICENCE, BE LIABLE TO YOU FOR DAMAGES,
-INCLUDING ANY GENERAL, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING
-OUT OF THE USE OR INABILITY TO USE THE SOFTWARE (INCLUDING BUT NOT LIMITED TO
-LOSS OF DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR
-THIRD PARTIES OR A FAILURE OF THE SOFTWARE TO OPERATE WITH ANY OTHER SOFTWARE),
-EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
-DAMAGES.
 
 =cut

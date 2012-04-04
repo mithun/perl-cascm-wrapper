@@ -1,0 +1,32 @@
+% Version History for CASCM-Wrapper
+% Mithun Ayachit
+
+# 0.06
+
+- Added r12.1.3 support
+- [minor] migrated to new repo format
+
+# 0.05
+
+- Temporary logs & DI files are now created using File::Temp
+
+# 0.04
+
+- Added CASCM r12.1 support
+
+# 0.03
+
+- Blank lines are no longer logged when using 'parse_logs'
+- Renamed temporary log files used
+
+# 0.02
+
+- Fixed bug where '-arg' was being passed when there were no arguments
+- Updated test cases
+- Fixed typo in POD
+
+# 0.01
+
+- Initial Release
+
+---------------------
