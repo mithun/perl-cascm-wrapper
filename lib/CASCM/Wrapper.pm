@@ -14,7 +14,7 @@ use Carp qw(croak carp);
 #######################
 # VERSION
 #######################
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 #######################
 # SETTINGS
@@ -102,6 +102,31 @@ sub update_context {
 
     return $self->set_context($context);
 } ## end sub update_context
+
+# Parse logs
+sub parse_logs {
+    my $self = shift;
+    if (@_) {
+        $self->{_options}->{parse_logs} = shift;
+        if ( $self->{_options}->{parse_logs} ) {
+            eval {
+                require Log::Any;
+                Log::Any->import(qw($log));
+                return 1;
+            }
+                or croak
+                "Error loading Log::Any. Please install it if you'd like to parse logs";
+        } ## end if ( $self->{_options}...)
+    } ## end if (@_)
+    return $self->{_options}->{parse_logs};
+} ## end sub parse_logs
+
+# Dry Run
+sub dry_run {
+    my $self = shift;
+    if (@_) { $self->{_options}->{dry_run} = shift; }
+    return $self->{_options}->{dry_run};
+}
 
 # Get context
 sub get_context { return shift->{_context}; }
@@ -218,15 +243,7 @@ sub _init {
     }
 
     # Check if we're parsing logs
-    if ( $options{'parse_logs'} ) {
-        eval {
-            require Log::Any;
-            Log::Any->import(qw($log));
-            return 1;
-        }
-            or croak
-            "Error loading Log::Any. Please install it if you'd like to parse logs";
-    } ## end if ( $options{'parse_logs'...})
+    $self->parse_logs(1) if $options{'parse_logs'};
 
     # Done initliazing
     return $self;
@@ -289,6 +306,7 @@ sub _run {
     my $di_file = $DIF->filename;
     print( $DIF "$arg_str $opt_str" )
         or do { $self->_err("Unable to write to $di_file") and return; };
+    close($DIF);
 
     # Run command
     my $cmd_str = "$cmd -di \"${di_file}\"";
@@ -331,66 +349,66 @@ sub _get_cmd_options {
 #<<< Don't touch this ...
 
     my $options = {
-        'common'    => [qw(v o oa wts)],
-        'hft'       => [qw(fo a b fs)],
-        'hauthsync' => [qw(b usr pw eh)],
-        'husrunlk'  => [qw(b usr pw eh)],
-        'hsigset'   => [qw(context purge)],
-        'hdelss'    => [qw(b en usr pw eh)],
-        'hgetusg'   => [qw(b usr pw pu cu)],
-        'hpkgunlk'  => [qw(b en usr pw eh)],
-        'hsigget'   => [qw(a purge v t gl)],
-        'hppolget'  => [qw(b usr pw f eh gl)],
-        'hppolset'  => [qw(b usr pw fc eh f)],
-        'hsmtp'     => [qw(m p f s d cc bcc)],
-        'himpenv'   => [qw(b f usr pw iug eh)],
-        'hchu'      => [qw(b usr pw npw ousr eh)],
-        'hdbgctrl'  => [qw(b rm rport usr pw eh)],
-        'hcp'       => [qw(b en st usr pw pn at eh)],
-        'hformsync' => [qw(b all f d hfd usr pw eh)],
-        'hdlp'      => [qw(b en pkgs st pn usr pw eh)],
-        'hdv'       => [qw(b en st vp usr pw pn s eh)],
-        'haccess'   => [qw(b usr pw en rn ha ug ft eh)],
-        'hap'       => [qw(b en st pn c usr pw rej eh)],
-        'hdp'       => [qw(b en st usr pw pn pb pd eh)],
-        'hsql'      => [qw(b f usr pw eh nh s t eh gl)],
-        'hudp'      => [qw(b en st usr pw pn ip ap eh)],
-        'hchgtype'  => [qw(b rp usr pw bin txt q ext eh)],
-        'hcrrlte'   => [qw(b en usr pw epid epname d eh)],
-        'hexpenv'   => [qw(b en f usr pw eac cug eug eh)],
-        'hspp'      => [qw(fp tp b en st pn usr pw s eh)],
-        'hpp'       => [qw(b en st usr pw pb pm pd pn eh)],
-        'hmvpkg'    => [qw(b en st usr pw ph pn ten tst eh)],
-        'har'       => [qw(b f m musr mpw usr pw eh er rport)],
-        'hrt'       => [qw(b f m musr mpw usr pw eh er rport)],
-        'hccmrg'    => [qw(b en st p usr pw mc ma tt tb pn eh)],
-        'hri'       => [qw(b en st usr pw vp pn ot ob p de eh)],
-        'hrmvpth'   => [qw(b en st vp p usr pw pn ot ob de eh)],
-        'hcrtpath'  => [qw(b en st rp usr pw p cipn ot ob eh de)],
-        'hrefresh'  => [qw(b pr st nst iv pl ps pv debug nolock)],
-        'hlv'       => [qw(b en st vp usr pw vn pn s cd ac ss eh)],
-        'hcbl'      => [qw(b en rp usr pw ss add rmr rdp rw eh st)],
-        'hcpj'      => [qw(b cpj npj act ina tem usr pw dac cug eh)],
-        'hpg'       => [qw(b en pg usr pw st bp cpg dpg app dpp eh)],
-        'hexecp'    => [qw(b prg m syn asyn usr pw args ma er rport)],
-        'husrmgr'   => [qw(b usr pw dlm ow nn cf du cpw swl ad ae eh)],
-        'hmvitm'    => [qw(b en st vp np p usr pw pn ot ob ur uk de eh)],
-        'hmvpth'    => [qw(b en st vp np p usr pw pn ot ob ur uk de eh)],
-        'hrnpth'    => [qw(b en st vp nn p usr pw pn ot ob ur uk de eh)],
-        'hsv'       => [qw(b en vp usr pw st p iu io iv it ib id s eh gl)],
-        'hrnitm'    => [qw(b en st vp on nn p usr pw pn ot ob ur uk de eh)],
-        'hcropmrg'  => [qw(b en1 en2 st1 st2 p1 p2 usr pw pn mo plo eh vfs)],
-        'hlr'       => [qw(b cp rp f usr pw rcep c rm rusr rpw eh er rport)],
-        'htakess'   => [qw(b en st abv ss usr pw p po pb vp pg ve ts rs pn eh)],
-        'hucache'   => [qw(b en st ss purge vp usr pw cacheagent rusr rpw rport eh er)],
-        'hcmpview'  => [qw(b en1 en2 st1 vn1 vn2 vp1 vp2 usr pw uv1 uv2 cidc ciic s eh)],
-        'hfatt'     => [qw(b fn fid add rem get at usr pw ft comp cp rm rusr rpw eh er rport)],
-        'hup'       => [qw(b en p usr pw npn at pr af apg rpg des nt rf ft afo rfo del cf eh)],
-        'hrepedit'  => [qw(b rp ppath tpath rnpath oldname newname usr pw all fo ismv isren eh)],
-        'hci'       => [qw(b en st p vp usr pw pn ur uk ro d nd de s op bo if ot ob dvp dcp cp rm rusr rpw eh er rport tr)],
-        'hsync'     => [qw(b en st vp cp usr pw eh pn br sy av fv iv pl il iol ps pv ss bo to tb rm rusr rpw er purge excl excls rport ced complete)],
-        'hco'       => [qw(b en st vp p up br ro sy cu usr pw vn nvs nvf r replace nt ss s pf po bo to tb ced dvp dcp cp op pn rm rusr rpw eh er rport tr)],
-        'hrepmngr'  => [qw(cr b usr pw nc coe mvs noext rext addext addvgrp addugrp addsgrp c fc del dup srn drn ndac ld cp rp r cep rm rusr rpw er ren oldname newname isv upd nc co appext nmvs gext remext remvgrp remugrp remsgrp appc mv srp drp all eh rport)],
+        'common'    => [qw(o v oa wts)],
+        'hft'       => [qw(a b fo fs)],
+        'hauthsync' => [qw(b eh pw usr)],
+        'husrunlk'  => [qw(b eh pw usr)],
+        'hsigset'   => [qw(purge context)],
+        'hdelss'    => [qw(b eh en pw usr)],
+        'hgetusg'   => [qw(b cu pu pw usr)],
+        'hpkgunlk'  => [qw(b eh en pw usr)],
+        'hsigget'   => [qw(a t v gl purge)],
+        'hppolget'  => [qw(b f eh gl pw usr)],
+        'hppolset'  => [qw(b f eh fc pw usr)],
+        'hsmtp'     => [qw(d f m p s cc bcc)],
+        'himpenv'   => [qw(b f eh pw iug usr)],
+        'hchu'      => [qw(b eh pw npw usr ousr)],
+        'hdbgctrl'  => [qw(b eh pw rm usr rport)],
+        'hcp'       => [qw(b at eh en pn pw st usr)],
+        'hformsync' => [qw(b d f eh pw all hfd usr)],
+        'hdlp'      => [qw(b eh en pn pw st usr pkgs)],
+        'hdv'       => [qw(b s eh en pn pw st vp usr)],
+        'haccess'   => [qw(b eh en ft ha pw rn ug usr)],
+        'hap'       => [qw(b c eh en pn pw st rej usr)],
+        'hdp'       => [qw(b eh en pb pd pn pw st usr)],
+        'hsql'      => [qw(b f s t eh eh gl nh pw usr)],
+        'hudp'      => [qw(b ap eh en ip pn pw st usr)],
+        'hchgtype'  => [qw(b q eh pw rp bin ext txt usr)],
+        'hcrrlte'   => [qw(b d eh en pw usr epid epname)],
+        'hexpenv'   => [qw(b f eh en pw cug eac eug usr)],
+        'hspp'      => [qw(b s eh en fp pn pw st tp usr)],
+        'hpp'       => [qw(b eh en pb pd pm pn pw st usr)],
+        'hmvpkg'    => [qw(b eh en ph pn pw st ten tst usr)],
+        'har'       => [qw(b f m eh er pw mpw usr musr rport)],
+        'hrt'       => [qw(b f m eh er pw mpw usr musr rport)],
+        'hccmrg'    => [qw(b p eh en ma mc pn pw st tb tt usr)],
+        'hri'       => [qw(b p de eh en ob ot pn pw st vp usr)],
+        'hrmvpth'   => [qw(b p de eh en ob ot pn pw st vp usr)],
+        'hcrtpath'  => [qw(b p de eh en ob ot pw rp st usr cipn)],
+        'hrefresh'  => [qw(b iv pl pr ps pv st nst debug nolock)],
+        'hlv'       => [qw(b s ac cd eh en pn pw ss st vn vp usr)],
+        'hcbl'      => [qw(b eh en pw rp rw ss st add rdp rmr usr)],
+        'hcpj'      => [qw(b eh pw act cpj cug dac ina npj tem usr)],
+        'hpg'       => [qw(b bp eh en pg pw st app cpg dpg dpp usr)],
+        'hexecp'    => [qw(b m er ma pw prg syn usr args asyn rport)],
+        'husrmgr'   => [qw(b ad ae cf du eh nn ow pw cpw dlm swl usr)],
+        'hmvitm'    => [qw(b p de eh en np ob ot pn pw st uk ur vp usr)],
+        'hmvpth'    => [qw(b p de eh en np ob ot pn pw st uk ur vp usr)],
+        'hrnpth'    => [qw(b p de eh en nn ob ot pn pw st uk ur vp usr)],
+        'hsv'       => [qw(b p s eh en gl ib id io it iu iv pw st vp usr)],
+        'hrnitm'    => [qw(b p de eh en nn ob on ot pn pw st uk ur vp usr)],
+        'hcropmrg'  => [qw(b eh mo p1 p2 pn pw en1 en2 plo st1 st2 usr vfs)],
+        'hlr'       => [qw(b c f cp eh er pw rm rp rpw usr rcep rusr rport)],
+        'htakess'   => [qw(b p eh en pb pg pn po pw rs ss st ts ve vp abv usr)],
+        'hucache'   => [qw(b eh en er pw ss st vp rpw usr rusr purge rport cacheagent)],
+        'hcmpview'  => [qw(b s eh pw en1 en2 st1 usr uv1 uv2 vn1 vn2 vp1 vp2 cidc ciic)],
+        'hfatt'     => [qw(b at cp eh er fn ft pw rm add fid get rem rpw usr comp rusr rport)],
+        'hup'       => [qw(b p af at cf eh en ft nt pr pw rf afo apg del des npn rfo rpg usr)],
+        'hrepedit'  => [qw(b eh fo pw rp all usr ismv isren ppath tpath rnpath newname oldname)],
+        'hci'       => [qw(b d p s bo cp de eh en er if nd ob op ot pn pw rm ro st tr uk ur vp dcp dvp rpw usr rusr rport)],
+        'hsync'     => [qw(b av bo br cp eh en er fv il iv pl pn ps pv pw rm ss st sy tb to vp ced iol rpw usr excl rusr excls purge rport complete)],
+        'hco'       => [qw(b p r s bo br cp cu eh en er nt op pf pn po pw rm ro ss st sy tb to tr up vn vp ced dcp dvp nvf nvs rpw usr rusr rport replace)],
+        'hrepmngr'  => [qw(b c r co cp cr eh er fc ld mv nc nc pw rm rp all cep coe del drn drp dup isv mvs ren rpw srn srp upd usr appc gext ndac nmvs rext rusr noext rport addext appext remext addsgrp addugrp addvgrp newname oldname remsgrp remugrp remvgrp)],
     };
 
 #>>>
@@ -405,7 +423,7 @@ sub _handle_error {
     my $self = shift;
     my $cmd  = shift;
     my $rc   = shift;
-    my $out  = shift || qw();
+    my $out  = shift || '';
 
     # Standard cases
     my %error = (
@@ -555,7 +573,7 @@ CASCM::Wrapper - Run CA-SCM (Harvest) commands
 
 =head1 DESCRIPTION
 
-This module is a wrapper around CA-SCM (formerly known as Harvest) commands. It
+This module is a wrapper around CA Software Change Manager's (formerly known as Harvest) commands. It
 provides a perl-ish interface to setting the context in which each command is
 executed, along with optional loading of context from files as well as parsing
 output logs.
@@ -803,6 +821,10 @@ Optionally, L<Config::Tiny> is required to read context files
 
 Optionally, L<Log::Any> and L<Log::Any::Adapter> is required to parse CA-SCM
 log files
+
+=head1 SEE ALSO
+
+L<CA Software Change Manager|"http://www.ca.com/us/products/detail/CA-Software-Change-Manager.aspx">
 
 =head1 BUGS AND LIMITATIONS
 
