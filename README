@@ -51,10 +51,10 @@ CASCM::Wrapper - Run CA-SCM (Harvest) commands
 DESCRIPTION
 ===========
 
-This module is a wrapper around CA-SCM (formerly known as Harvest)
-commands. It provides a perl-ish interface to setting the context in
-which each command is executed, along with optional loading of context
-from files as well as parsing output logs.
+This module is a wrapper around CA Software Change Manager's (formerly
+known as Harvest) commands. It provides a perl-ish interface to setting
+the context in which each command is executed, along with optional
+loading of context from files as well as parsing output logs.
 
 CONTEXT
 =======
@@ -308,6 +308,11 @@ Optionally, Config::Tiny is required to read context files
 
 Optionally, Log::Any and Log::Any::Adapter is required to parse CA-SCM
 log files
+
+SEE ALSO
+========
+
+CA Software Change Manager
 
 BUGS AND LIMITATIONS
 ====================

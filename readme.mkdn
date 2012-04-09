@@ -49,7 +49,7 @@ CASCM::Wrapper - Run CA-SCM (Harvest) commands
 
 # DESCRIPTION
 
-This module is a wrapper around CA-SCM (formerly known as Harvest) commands. It
+This module is a wrapper around CA Software Change Manager's (formerly known as Harvest) commands. It
 provides a perl-ish interface to setting the context in which each command is
 executed, along with optional loading of context from files as well as parsing
 output logs.
@@ -93,16 +93,16 @@ commands. See ["SECURITY"](#SECURITY)
 
 The following methods are available to manage context
 
-## set_context($context)
+## set\_context($context)
 
 Sets the context. Old context is forgotten. The argument provided must be a
 hash reference
 
-## update_context($context)
+## update\_context($context)
 
 Updates the current context. The argument provided must be a hash reference
 
-## load_context($file)
+## load\_context($file)
 
 This loads the context from an 'INI' file. The root parameters defines the
 global context. Each sectional parameter defines the command specific context.
@@ -134,7 +134,7 @@ This is a sample context file
 __NOTE:__ This method requires [Config::Tiny](http://search.cpan.org/perldoc?Config::Tiny) in order to read the context
 file.
 
-## get_context()
+## get\_context()
 
 Returns a hash reference of current context
 
@@ -295,10 +295,14 @@ Optionally, [Config::Tiny](http://search.cpan.org/perldoc?Config::Tiny) is requi
 Optionally, [Log::Any](http://search.cpan.org/perldoc?Log::Any) and [Log::Any::Adapter](http://search.cpan.org/perldoc?Log::Any::Adapter) is required to parse CA-SCM
 log files
 
+# SEE ALSO
+
+[CA Software Change Manager](#http://www.ca.com/us/products/detail/CA-Software-Change-Manager.aspx)
+
 # BUGS AND LIMITATIONS
 
-Please report any bugs or feature requests to
-`bug-cascm-wrapper@rt.cpan.org`, or through the web interface at
+Please report any bugs or feature requests to `bug-cascm-wrapper@rt.cpan.org`,
+or through the web interface at
 [http://rt.cpan.org/Public/Dist/Display.html?Name=CASCM-Wrapper](http://rt.cpan.org/Public/Dist/Display.html?Name=CASCM-Wrapper)
 
 # AUTHOR

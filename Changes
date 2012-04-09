@@ -2,6 +2,14 @@ Version History for CASCM-Wrapper
 Mithun Ayachit
 
 
+0.07
+====
+
+-   [minor] Added a link back to CA-SCM product page
+-   [minor] Code formatting updates
+-   Provide setters for dry_run and parse_logs allowing updated between
+    invocations
+
 0.06
 ====
 
