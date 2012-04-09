@@ -14,7 +14,7 @@ use Carp qw(croak carp);
 #######################
 # VERSION
 #######################
-our $VERSION = '0.07';
+our $VERSION = '0.071';
 
 #######################
 # SETTINGS
@@ -825,7 +825,7 @@ log files
 =head1 SEE ALSO
 
 L<CA Software Change
-Manager|"http://www.ca.com/us/products/detail/CA-Software-Change-Manager.aspx">
+Manager|http://www.ca.com/us/products/detail/CA-Software-Change-Manager.aspx>
 
 =head1 BUGS AND LIMITATIONS
 
