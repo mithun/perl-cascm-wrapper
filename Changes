@@ -2,6 +2,14 @@ Version History for CASCM-Wrapper
 Mithun Ayachit
 
 
+* * * * *
+
+0.8
+===
+
+-   Updated argument processing to pass each argument with an '-arg'
+-   Added new dependency options for hdp and hpp
+
 0.071
 =====
 
