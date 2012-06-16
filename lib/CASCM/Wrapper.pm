@@ -14,7 +14,7 @@ use Carp qw(croak carp);
 #######################
 # VERSION
 #######################
-our $VERSION = '0.071';
+our $VERSION = '0.08';
 
 #######################
 # SETTINGS
@@ -293,7 +293,9 @@ sub _run {
 
     # Build argument string
     my $arg_str = q();
-    if (@args) { $arg_str = join( ' ', '-arg', @args ); }
+    if (@args) {
+        $arg_str = join( ' ', map { "-arg=$_" } @args );
+    }
 
     # Get option string for $cmd
     my $opt_str = $self->_get_option_str( $cmd, $context );
@@ -412,8 +414,8 @@ sub _get_cmd_options {
     };
 
 #>>>
-    my @cmd_options =
-        sort { lc $a cmp lc $b }
+    my @cmd_options
+        = sort { lc $a cmp lc $b }
         ( @{ $options->{common} }, @{ $options->{$cmd} } );
     return @cmd_options;
 } ## end sub _get_cmd_options
