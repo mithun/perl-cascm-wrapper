@@ -129,7 +129,29 @@ sub dry_run {
 }
 
 # Get context
-sub get_context { return shift->{_context}; }
+sub get_context {
+    my ( $self, $cmd ) = @_;
+    my $context = {};
+    if ($cmd) {
+        $context = {
+
+            # Global
+            $self->{_context}->{global}
+            ? %{ $self->{_context}->{global} }
+            : (),
+
+            # Command specific
+            $self->{_context}->{$cmd}
+            ? %{ $self->{_context}->{$cmd} }
+            : (),
+        };
+    } ## end if ($cmd)
+    else {
+        $context = $self->{_context};
+    }
+
+    return $context;
+} ## end sub get_context
 
 # Get error message
 sub errstr { return shift->{_errstr}; }
@@ -210,7 +232,7 @@ sub _init {
     # Basic initliazation
     $self->{_options} = {};
     $self->{_context} = {};
-    $self->{_errstr}  = qw();
+    $self->{_errstr}  = q();
 
     # Make sure we have a option hash ref
     if ( ref $options_ref ne 'HASH' ) { croak "Hash reference expected"; }
@@ -264,7 +286,7 @@ sub _run {
     my @args = @_;
 
     # Reset error
-    $self->_err(qw());
+    $self->_err(q());
 
     # Check for context
     my $run_context = {};
@@ -275,9 +297,8 @@ sub _run {
     my $parse_log = $self->{_options}->{'parse_logs'};
 
     # Get cmd context
-    my $global_context = $self->get_context()->{global} || {};
-    my $cmd_context    = $self->get_context()->{$cmd}   || {};
-    my $context = { %{$global_context}, %{$cmd_context}, %{$run_context} };
+    my $cmd_context = $self->get_context($cmd) || {};
+    my $context = { %{$cmd_context}, %{$run_context} };
 
     # Check if we're parsing logs
     my $default_log = File::Temp->new()->filename;
@@ -312,7 +333,7 @@ sub _run {
 
     # Run command
     my $cmd_str = "$cmd -di \"${di_file}\"";
-    my $out     = `$cmd_str 2>&1`;
+    my $out     = qx($cmd_str 2>&1);
     my $rc      = $?;
 
     # Cleanup DI file if command didn't remove it
@@ -414,6 +435,7 @@ sub _get_cmd_options {
     };
 
 #>>>
+
     my @cmd_options = sort { lc $a cmp lc $b }
         ( @{ $options->{common} }, @{ $options->{$cmd} } );
     return @cmd_options;
@@ -421,15 +443,12 @@ sub _get_cmd_options {
 
 # Handle error/return
 sub _handle_error {
-    my $self = shift;
-    my $cmd  = shift;
-    my $rc   = shift;
-    my $out  = shift || '';
+    my ( $self, $cmd, $rc, $out ) = @_;
 
     # Standard cases
     my %error = (
-        '1' =>
-            "Command syntax for $cmd is incorrect. Please check your context setting",
+        '1' => "Command syntax for $cmd is incorrect."
+            . ' Please check your context setting',
         '2'  => 'Broker not connected',
         '3'  => "$cmd failed",
         '4'  => 'Unexpected error',
@@ -466,6 +485,20 @@ sub _handle_error {
         );
     } ## end elsif ( $cmd eq 'hexecp' )
 
+    # Cleanup command output
+    if ($out) {
+        my @lines;
+        foreach my $line ( split( /\r\n|\n/, $out ) ) {
+            chomp $line;
+            next unless $line;
+            next if $line =~ /^[[:blank:]]$/;
+            push @lines, $line;
+        } ## end foreach my $line ( split( /\r\n|\n/...))
+
+        # Reset
+        $out = join( '. ', @lines );
+    } ## end if ($out)
+
     # Get error message
     my $msg;
     if ( $rc == -1 ) {
@@ -475,7 +508,7 @@ sub _handle_error {
         return;
     } ## end if ( $rc == -1 )
     elsif ( $rc > 0 ) {
-        $rc >>= 8;
+        if ( $rc > 255 ) { $rc = $rc >> 8; }
         $msg = $error{$rc} || "Uknown error";
         $msg .= " : $out" if $out;
         $self->_err($msg);
