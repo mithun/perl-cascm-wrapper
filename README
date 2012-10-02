@@ -10,27 +10,34 @@ CASCM::Wrapper - Run CA-SCM (Harvest) commands
 
     # Set Context
     $cascm->set_context(
-        {    # Set a global context. This is applied to all commands where required
-           global => { b  => 'harvest',
-                       eh => 'user.dfo',
-           },
+        {
+            # Set a global context.
+            # This is applied to all commands where required
+            global => {
+                b  => 'harvest',
+                eh => 'user.dfo',
+            },
 
-           # Set 'hco' specific context, applied only to hco commands
-           hco => { up => 1,
-                    vp => '\repository\myapp\src',
-                    pn => 'Checkout Items',
-           },
+            # Set 'hco' specific context,
+            #   applied only to hco commands
+            hco => {
+                up => 1,
+                vp => '\repository\myapp\src',
+                pn => 'Checkout Items',
+            },
 
-           # Similarly for 'hci'
-           hci => { vp => '\repository\myapp\src',
-                    pn => 'Checkin Items',
-                    de => 'Shiny new feature',
-           },
+            # Similarly for 'hci'
+            hci => {
+                vp => '\repository\myapp\src',
+                pn => 'Checkin Items',
+                de => 'Shiny new feature',
+            },
 
-           # And 'hcp'
-           hcp => { st => 'development',
-                    at => 'userid',
-           },
+            # And 'hcp'
+            hcp => {
+                st => 'development',
+                at => 'userid',
+            },
         }
     ) or die $cascm->errstr;
 
@@ -68,10 +75,11 @@ This specifies the global context. Any context set here will be applied
 to every command that uses it.
 
     my $global_context = {
-                           global => { b  => 'harvest',
-                                       eh => 'user.dfo',
-                           },
-      };
+        global => {
+            b  => 'harvest',
+            eh => 'user.dfo',
+        },
+    };
 
 -   command specific
 
@@ -79,10 +87,11 @@ This provides a command specific context. Context set here will be
 applied only to those specific commands.
 
     my $hco_context = {
-                        hco => { up => 1,
-                                 vp => '\repository\myapp\src',
-                                 pn => 'Checkout Items',
-                        },
+        hco => {
+            up => 1,
+            vp => '\repository\myapp\src',
+            pn => 'Checkout Items',
+        },
     };
 
 The global and command context keys are synonymous with the command line
