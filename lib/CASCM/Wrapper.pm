@@ -14,7 +14,7 @@ use Carp qw(croak carp);
 #######################
 # VERSION
 #######################
-our $VERSION = '0.09';
+our $VERSION = '0.091';
 
 #######################
 # SETTINGS

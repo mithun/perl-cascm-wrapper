@@ -164,8 +164,8 @@ Returns a hash reference of current context
 You can also get a command specific context by passing the command as an
 argument
 
-    my $hco_context = $cascm->get_context('hco);
-    user Data::Dumper;
+    my $hco_context = $cascm->get_context('hco');
+    use Data::Dumper;
     print Dumper($hco_context);
 
 CA-SCM METHODS
