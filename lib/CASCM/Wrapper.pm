@@ -719,8 +719,8 @@ Returns a hash reference of current context
 You can also get a command specific context by passing the command as
 an argument
 
-    my $hco_context = $cascm->get_context('hco);
-    user Data::Dumper;
+    my $hco_context = $cascm->get_context('hco');
+    use Data::Dumper;
     print Dumper($hco_context);
 
 
@@ -831,8 +831,8 @@ use this feature, which in turn allows you to use any (supported)
 Logging mechanism. When using this, any C<o> or C<oa> options specified
 in the context will be ignored. Your scripts will need to load the
 appropriate L<Log::Any::Adapter> to capture the log statements. The
-CA-SCM log is parsed and the messages are logged either as L<INFO>,
-L<WARN> or L<ERROR>.
+CA-SCM log is parsed and the messages are logged either as I<INFO>,
+I<WARN> or I<ERROR>.
 
     # Using Log4perl
 
