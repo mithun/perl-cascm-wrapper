@@ -8,7 +8,7 @@ use warnings;
 use Test::More;
 
 # Autoflush
-$| = 1;
+local $| = 1;
 
 # What are we testing?
 my $module = "CASCM::Wrapper";
@@ -56,5 +56,14 @@ ok(
     )
 );
 is_deeply( $cascm->get_context, $updated );
+
+# Command specific context
+my $hco_context = {
+    b  => 'harvest_new',
+    eh => 'my_creds.dfo',
+    vp => '\repo\myapp\src',
+    up => 1,
+};
+is_deeply( $cascm->get_context('hco'), $hco_context );
 
 done_testing();

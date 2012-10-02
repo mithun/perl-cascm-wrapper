@@ -1,49 +1,54 @@
 % Version History for CASCM-Wrapper
 % Mithun Ayachit
+%
 
----------------------
+# 0.09
 
-# 0.8
+-   Allow `get_context` to resolve and return a command specific context
+-   POD cleanup
 
-- Updated argument processing to pass each argument with an '-arg'
-- Added new dependency options for hdp and hpp
+# 0.08
+
+-   Updated argument processing to pass each argument with an `-arg`
+-   Added new dependency options for `hdp` and `hpp`
 
 # 0.071
 
-- [pod] Fixed link to CA-SCM product page
+-   [pod] Fixed link to CA-SCM product page
 
 # 0.07
 
-- [minor] Added a link back to CA-SCM product page
-- [minor] Code formatting updates
-- Provide setters for `dry_run` and `parse_logs` allowing updated between invocations
+-   [minor] Added a link back to CA-SCM product page
+-   [minor] Code formatting updates
+-   Provide setters for `dry_run` and `parse_logs` allowing updated
+    between invocations
 
 # 0.06
 
-- Added r12.1.3 support
-- [minor] migrated to new repo format
+-   Added r12.1.3 support
+-   [minor] migrated to new repo format
 
 # 0.05
 
-- Temporary logs & DI files are now created using File::Temp
+-   Temporary logs & DI files are now created using File::Temp
 
 # 0.04
 
-- Added CASCM r12.1 support
+-   Added CASCM r12.1 support
 
 # 0.03
 
-- Blank lines are no longer logged when using 'parse_logs'
-- Renamed temporary log files used
+-   Blank lines are no longer logged when using 'parse\_logs'
+-   Renamed temporary log files used
 
 # 0.02
 
-- Fixed bug where '-arg' was being passed when there were no arguments
-- Updated test cases
-- Fixed typo in POD
+-   Fixed bug where '-arg' was being passed when there were no arguments
+-   Updated test cases
+-   Fixed typo in POD
 
 # 0.01
 
-- Initial Release
+-   Initial Release
 
----------------------
+* * * * *

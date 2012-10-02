@@ -92,7 +92,7 @@ equivalent to hco -up. The methods are intelligent enough to apply only
 the context keys that are used by a command. For e.g. a global context
 of vp will not apply to hcp.
 
-The 'common' options i and di are not applicable and ignored for all
+The common options i and di are not applicable and ignored for all
 commands. See "SECURITY"
 
 The following methods are available to manage context
@@ -112,11 +112,12 @@ reference
 load_context($file)
 -------------------
 
-This loads the context from an 'INI' file. The root parameters defines
-the global context. Each sectional parameter defines the command
-specific context. Old context is forgotten.
+This loads the context from an INI file. The root parameters defines the
+global context. Each sectional parameter defines the command specific
+context. Old context is forgotten.
 
-    # Load context file at initialization. This will croak if it fails to read the context file
+    # Load context file at initialization.
+    #   This will croak if it fails to read the context file
     my $cascm = CASCM::Wrapper->new( { context_file => $file } );
 
     # Alternatively
@@ -134,7 +135,7 @@ This is a sample context file
 
     [hco]
         up = 1
-        vp = \repository\myapp\src
+        vp = /repository/myapp/src
 
     [hcp]
         st = development
@@ -150,6 +151,13 @@ Returns a hash reference of current context
     my $context = $cascm->get_context();
     use Data::Dumper;
     print Dumper($context);
+
+You can also get a command specific context by passing the command as an
+argument
+
+    my $hco_context = $cascm->get_context('hco);
+    user Data::Dumper;
+    print Dumper($hco_context);
 
 CA-SCM METHODS
 ==============
@@ -172,7 +180,7 @@ arguments provided is passed using the '-arg' option.
     # Override/Append to context
     $cascm->hci( { p => 'new_package' }, @files ) or die $cascm->errstr;
 
-The methods can be called in a 'dry run' mode. Where the method returns
+The methods can be called in a dry run mode. Where the method returns
 the full command line, without executing anything. This can be useful
 for debugging.
 
@@ -257,10 +265,10 @@ LOGGING
 Since CA-SCM commands output only to log files, this module allows
 parsing and logging of a command's output. Log::Any is required to use
 this feature, which in turn allows you to use any (supported) Logging
-mechanism. When using this, any 'o' or 'oa' options specified in the
-context will be ignored. Your scripts will need to load the appropriate
+mechanism. When using this, any o or oa options specified in the context
+will be ignored. Your scripts will need to load the appropriate
 Log::Any::Adapter to capture the log statements. The CA-SCM log is
-parsed and the messages are logged either as 'INFO', 'WARN' or 'ERROR'.
+parsed and the messages are logged either as INFO, WARN or ERROR.
 
     # Using Log4perl
 

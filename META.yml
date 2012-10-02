@@ -8,7 +8,7 @@ build_requires:
 configure_requires:
   Module::Build: 0.38
 dynamic_config: 1
-generated_by: 'Module::Build version 0.4, CPAN::Meta::Converter version 2.120921'
+generated_by: 'Module::Build version 0.4003, CPAN::Meta::Converter version 2.120921'
 keywords:
   - cascm
   - harvest
@@ -23,7 +23,7 @@ name: CASCM-Wrapper
 provides:
   CASCM::Wrapper:
     file: lib/CASCM/Wrapper.pm
-    version: 0.08
+    version: 0.09
 recommends:
   Config::Tiny: 0
   Log::Any: 0
@@ -36,4 +36,4 @@ resources:
   homepage: https://github.com/mithun/perl-cascm-wrapper
   license: http://dev.perl.org/licenses/
   repository: git://github.com/mithun/perl-cascm-wrapper.git
-version: 0.08
+version: 0.09

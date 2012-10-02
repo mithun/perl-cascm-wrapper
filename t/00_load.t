@@ -8,7 +8,7 @@ use warnings;
 use Test::More;
 
 # Autoflush
-$| = 1;
+local $| = 1;
 
 # What are we testing?
 my $module = "CASCM::Wrapper";
