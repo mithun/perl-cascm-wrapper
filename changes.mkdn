@@ -2,6 +2,11 @@
 % Mithun Ayachit
 %
 
+# 0.10
+
+- New private method to merge contexts
+- Allow setting options during CASCM method calls
+
 # 0.091
 
 -   Fix POD errors

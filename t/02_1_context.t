@@ -45,13 +45,17 @@ my $updated = {
         vp => '\repo\myapp\src',
         up => 1,
     },
-    hcp => { st => 'dev', },
+    hcp => {
+        st => 'dev',
+    },
 };
 ok(
     $cascm->update_context(
         {
-            global => { b  => 'harvest_new' },
-            hcp    => { st => 'dev', },
+            global => { b => 'harvest_new' },
+            hcp    => {
+                st => 'dev',
+            },
         }
     )
 );

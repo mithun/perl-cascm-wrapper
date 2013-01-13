@@ -18,7 +18,7 @@ my $module = "CASCM::Wrapper";
 eval {
     require Config::Tiny;
     Config::Tiny->import();
-    return 1;
+  return 1;
 } or plan skip_all => "Config::Tiny not found";
 
 # Load
@@ -39,7 +39,9 @@ my $expected = {
         vp => '\repo\myapp\src',
         up => 1,
     },
-    hcp => { st => 'dev', },
+    hcp => {
+        st => 'dev',
+    },
 };
 
 is_deeply( $cascm->get_context, $expected );

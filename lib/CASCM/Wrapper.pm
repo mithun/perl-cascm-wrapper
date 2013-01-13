@@ -14,7 +14,7 @@ use Carp qw(croak carp);
 #######################
 # VERSION
 #######################
-our $VERSION = '0.091';
+our $VERSION = '0.10';
 
 #######################
 # SETTINGS
@@ -34,7 +34,7 @@ sub new {
 
     my $self = {};
     bless $self, $class;
-    return $self->_init($options_ref);
+  return $self->_init($options_ref);
 } ## end sub new
 
 # Set Context
@@ -44,42 +44,40 @@ sub set_context {
 
     if ( ref $context ne 'HASH' ) {
         $self->_err("Context must be a hash reference");
-        return;
-    }
+      return;
+    } ## end if ( ref $context ne 'HASH')
 
     $self->{_context} = $context;
-    return 1;
+  return 1;
 } ## end sub set_context
 
 # load context
 sub load_context {
     my $self = shift;
-    my $file = shift
-        || ( $self->_err("File required but missing") and return );
+    my $file = shift || ( $self->_err("File required but missing") and return );
 
     if ( not -f $file ) { $self->_err("File $file does not exist"); return; }
 
     eval {
         require Config::Tiny;
         Config::Tiny->import();
-        return 1;
+      return 1;
     } or do {
         $self->_err(
-            "Please install Config::Tiny if you'd like to load context files"
-        );
-        return;
+            "Please install Config::Tiny if you'd like to load context files");
+      return;
     };
 
     my $config = Config::Tiny->read($file)
-        or do { $self->_err("Error reading $file") and return; };
+      or do { $self->_err("Error reading $file") and return; };
 
     my $context = {};
     foreach ( keys %{$config} ) {
         if   ( $_ eq '_' ) { $context->{global} = $config->{$_}; }
         else               { $context->{$_}     = $config->{$_}; }
-    }
+    } ## end foreach ( keys %{$config} )
 
-    return $self->set_context($context);
+  return $self->set_context($context);
 } ## end sub load_context
 
 # Update Context
@@ -89,8 +87,8 @@ sub update_context {
 
     if ( ref $new ne 'HASH' ) {
         $self->_err("Context must be a hash reference");
-        return;
-    }
+      return;
+    } ## end if ( ref $new ne 'HASH')
 
     my $context = $self->get_context();
 
@@ -98,9 +96,9 @@ sub update_context {
         foreach my $key ( keys %{ $new->{$type} } ) {
             $context->{$type}->{$key} = $new->{$type}->{$key};
         }
-    }
+    } ## end foreach my $type ( keys %{$new...})
 
-    return $self->set_context($context);
+  return $self->set_context($context);
 } ## end sub update_context
 
 # Parse logs
@@ -112,21 +110,21 @@ sub parse_logs {
             eval {
                 require Log::Any;
                 Log::Any->import(qw($log));
-                return 1;
+              return 1;
             }
-                or croak
-                "Error loading Log::Any. Please install it if you'd like to parse logs";
+              or croak
+              "Error loading Log::Any. Please install it if you'd like to parse logs";
         } ## end if ( $self->{_options}...)
     } ## end if (@_)
-    return $self->{_options}->{parse_logs};
+  return $self->{_options}->{parse_logs};
 } ## end sub parse_logs
 
 # Dry Run
 sub dry_run {
     my $self = shift;
     if (@_) { $self->{_options}->{dry_run} = shift; }
-    return $self->{_options}->{dry_run};
-}
+  return $self->{_options}->{dry_run};
+} ## end sub dry_run
 
 # Get context
 sub get_context {
@@ -136,21 +134,17 @@ sub get_context {
         $context = {
 
             # Global
-            $self->{_context}->{global}
-            ? %{ $self->{_context}->{global} }
-            : (),
+            $self->{_context}->{global} ? %{ $self->{_context}->{global} } : (),
 
             # Command specific
-            $self->{_context}->{$cmd}
-            ? %{ $self->{_context}->{$cmd} }
-            : (),
+            $self->{_context}->{$cmd} ? %{ $self->{_context}->{$cmd} } : (),
         };
     } ## end if ($cmd)
     else {
         $context = $self->{_context};
     }
 
-    return $context;
+  return $context;
 } ## end sub get_context
 
 # Get error message
@@ -261,14 +255,14 @@ sub _init {
     # Set context
     if ( $options{'context_file'} ) {
         $self->load_context( $options{'context_file'} )
-            or croak "Error Loading Context file : " . $self->errstr();
-    }
+          or croak "Error Loading Context file : " . $self->errstr();
+    } ## end if ( $options{'context_file'...})
 
     # Check if we're parsing logs
     $self->parse_logs(1) if $options{'parse_logs'};
 
     # Done initliazing
-    return $self;
+  return $self;
 } ## end sub _init
 
 # Set error
@@ -276,33 +270,33 @@ sub _err {
     my $self = shift;
     my $msg  = shift;
     $self->{_errstr} = $msg;
-    return 1;
+  return 1;
 } ## end sub _err
 
 # Execute command
 sub _run {
-    my $self = shift;
-    my $cmd  = shift;
-    my @args = @_;
+    my ( $self, $cmd, @args ) = @_;
 
     # Reset error
     $self->_err(q());
 
-    # Check for context
-    my $run_context = {};
-    if ( ref $args[0] eq 'HASH' ) { $run_context = shift @args; }
+    # Get Context & Options
+    my $context = {};
+    ( $context, @args ) = $self->_get_run_context( $cmd, @args );
 
     # Get options
-    my $dry_run   = $self->{_options}->{'dry_run'};
-    my $parse_log = $self->{_options}->{'parse_logs'};
-
-    # Get cmd context
-    my $cmd_context = $self->get_context($cmd) || {};
-    my $context = { %{$cmd_context}, %{$run_context} };
+    my $dry_run   = delete $context->{dry_run};
+    my $parse_log = delete $context->{parse_logs};
 
     # Check if we're parsing logs
-    my $default_log = File::Temp->new()->filename;
+    my $default_log;
     if ($parse_log) {
+
+        # Init Log
+        my $tmpfile = File::Temp->new(
+            UNLINK => 1,
+        );
+        $default_log = $tmpfile->filename();
 
         # Remove existing 'o' & 'oa' from context
         delete $context->{'o'}  if exists $context->{'o'};
@@ -328,7 +322,7 @@ sub _run {
     my $DIF = File::Temp->new( UNLINK => 0 );
     my $di_file = $DIF->filename;
     print( $DIF "$arg_str $opt_str" )
-        or do { $self->_err("Unable to write to $di_file") and return; };
+      or do { $self->_err("Unable to write to $di_file") and return; };
     close($DIF);
 
     # Run command
@@ -343,8 +337,26 @@ sub _run {
     _parse_log($default_log) if $parse_log;
 
     # Return
-    return $self->_handle_error( $cmd, $rc, $out );
+  return $self->_handle_error( $cmd, $rc, $out );
 } ## end sub _run
+
+# Get run context
+sub _get_run_context {
+    my ( $self, $cmd, @args ) = @_;
+
+    my $run_context = {};
+    if ( ref( $args[0] ) eq 'HASH' ) { $run_context = shift @args; }
+
+    my $cmd_context = $self->get_context($cmd) || {};
+    my $context = { %{$cmd_context}, %{$run_context} };
+
+    $context->{dry_run} = $self->{_options}->{dry_run}
+      if not exists $context->{dry_run};
+    $context->{parse_logs} = $self->{_options}->{parse_logs}
+      if not exists $context->{parse_logs};
+
+  return ( $context, @args );
+} ## end sub _get_run_context
 
 # Get option string
 sub _get_option_str {
@@ -356,13 +368,13 @@ sub _get_option_str {
 
     my @opt_args = qw();
     foreach my $option (@cmd_options) {
-        next unless $context->{$option};
+      next unless $context->{$option};
         my $val = $context->{$option};
         if   ( $val eq '1' ) { push @opt_args, "-${option}"; }
         else                 { push @opt_args, "-${option}", $val; }
     } ## end foreach my $option (@cmd_options)
 
-    return join( ' ', @opt_args );
+  return join( ' ', @opt_args );
 } ## end sub _get_option_str
 
 # Command options
@@ -437,8 +449,8 @@ sub _get_cmd_options {
 #>>>
 
     my @cmd_options = sort { lc $a cmp lc $b }
-        ( @{ $options->{common} }, @{ $options->{$cmd} } );
-    return @cmd_options;
+      ( @{ $options->{common} }, @{ $options->{$cmd} } );
+  return @cmd_options;
 } ## end sub _get_cmd_options
 
 # Handle error/return
@@ -448,7 +460,7 @@ sub _handle_error {
     # Standard cases
     my %error = (
         '1' => "Command syntax for $cmd is incorrect."
-            . ' Please check your context setting',
+          . ' Please check your context setting',
         '2'  => 'Broker not connected',
         '3'  => "$cmd failed",
         '4'  => 'Unexpected error',
@@ -459,8 +471,8 @@ sub _handle_error {
         '9'  => 'Exposed password',
         '10' => 'Ambiguous arguments',
         '11' => 'Access denied',
-        '12' => 'Prelink failed',
-        '13' => 'Postlink failed',
+        '12' => 'Pre-link failed',
+        '13' => 'Post-link failed',
     );
 
     # Special cases
@@ -468,7 +480,7 @@ sub _handle_error {
         %error = (
             %error,
             '94' =>
-                'Password changes executed from the command line using hchu are disabled when external authentication is enabled',
+              'Password changes executed from the command line using hchu are disabled when external authentication is enabled',
         );
     } ## end if ( $cmd eq 'hchu' )
     elsif ( $cmd eq 'hco' ) {
@@ -481,19 +493,19 @@ sub _handle_error {
         %error = (
             %error,
             '2' =>
-                'Broker not connected OR the invoked program did not return a value of its own',
+              'Broker not connected OR the invoked program did not return a value of its own',
         );
     } ## end elsif ( $cmd eq 'hexecp' )
 
     # Cleanup command output
     if ($out) {
         my @lines;
-        foreach my $line ( split( /\r\n|\n/, $out ) ) {
+        foreach my $line ( split( /\r\n|\r|\n/, $out ) ) {
             chomp $line;
-            next unless $line;
-            next if $line =~ /^[[:blank:]]$/;
+          next unless $line;
+          next if $line =~ /^[[:blank:]]$/;
             push @lines, $line;
-        } ## end foreach my $line ( split( /\r\n|\n/...))
+        } ## end foreach my $line ( split( /\r\n|\r|\n/...))
 
         # Reset
         $out = join( '. ', @lines );
@@ -505,18 +517,18 @@ sub _handle_error {
         $msg = "Failed to execute $cmd";
         $msg .= " : $out" if $out;
         $self->_err($msg);
-        return;
+      return;
     } ## end if ( $rc == -1 )
     elsif ( $rc > 0 ) {
         if ( $rc > 255 ) { $rc = $rc >> 8; }
-        $msg = $error{$rc} || "Uknown error";
+        $msg = $error{$rc} || "Unknown error";
         $msg .= " : $out" if $out;
         $self->_err($msg);
-        return;
+      return;
     } ## end elsif ( $rc > 0 )
 
     # Return true
-    return 1;
+  return 1;
 } ## end sub _handle_error
 
 # Parse Log
@@ -525,16 +537,17 @@ sub _parse_log {
 
     if ( not -f $logfile ) {
         $log->error("Logfile $logfile does not exist");
-        return 1;
-    }
+      return 1;
+    } ## end if ( not -f $logfile )
 
     open( my $L, '<', $logfile )
-        or do { $log->error("Unable to read $logfile") and return 1; };
+      or do { $log->error("Unable to read $logfile") and return 1; };
     while (<$L>) {
         my $line = $_;
+      next unless defined $line;
         chomp $line;
-        next unless $line;
-        next if $line =~ /^[[:blank:]]$/;
+      next unless $line;
+      next if $line =~ /^[[:blank:]]*$/;
 
         if    ( $line =~ s/^\s*E0\w{7}:\s*//x ) { $log->error($line); }
         elsif ( $line =~ s/^\s*W0\w{7}:\s*//x ) { $log->warn($line); }
@@ -543,7 +556,7 @@ sub _parse_log {
     } ## end while (<$L>)
     close $L;
     unlink($logfile) or $log->warn("Unable to delete $logfile");
-    return 1;
+  return 1;
 } ## end sub _parse_log
 
 #######################
@@ -744,15 +757,6 @@ arguments provided is passed using the '-arg' option.
     # Override/Append to context
     $cascm->hci( { p => 'new_package' }, @files ) or die $cascm->errstr;
 
-The methods can be called in a I<dry run> mode. Where the method
-returns the full command line, without executing anything. This can be
-useful for debugging.
-
-    $cascm = CASCM::Wrapper->new( { dry_run => 1 } );
-    $cascm->set_context($context);
-    $cmd = $cascm->hsync();
-    print "Calling hsync() would have executed -> $cmd";
-
 The following CA-SCM commands are available as methods
 
     hap
@@ -822,6 +826,19 @@ This module uses the I<di> option for executing CA-SCM commands. This
 prevents any passwords from being exposed while the command is running.
 The temporary I<di> file is deleted irrespective if the outcome of the
 command.
+
+=head1 DRY RUN
+
+The CASCM methods can be called in a I<dry run> mode. Where the method returns the full command line, without executing anything. This can be useful for debugging.
+
+    $cascm = CASCM::Wrapper->new( { dry_run => 1 } );
+    $cascm->set_context($context);
+    $cmd = $cascm->hsync();
+    print "Calling hsync() would have executed -> $cmd";
+
+C<dry_run> can also be toggled using contexts. For e.g.,
+
+    $cascm->hsync({dry_run => 1,});
 
 =head1 LOGGING
 
