@@ -829,7 +829,9 @@ command.
 
 =head1 DRY RUN
 
-The CASCM methods can be called in a I<dry run> mode. Where the method returns the full command line, without executing anything. This can be useful for debugging.
+The CASCM methods can be called in a I<dry run> mode. Where the method
+returns the full command line, without executing anything. This can be
+useful for debugging.
 
     $cascm = CASCM::Wrapper->new( { dry_run => 1 } );
     $cascm->set_context($context);

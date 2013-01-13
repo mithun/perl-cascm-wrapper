@@ -71,28 +71,28 @@ keys:
 
 -   global
 
-This specifies the global context. Any context set here will be applied
-to every command that uses it.
+    This specifies the global context. Any context set here will be
+    applied to every command that uses it.
 
-    my $global_context = {
-        global => {
-            b  => 'harvest',
-            eh => 'user.dfo',
-        },
-    };
+        my $global_context = {
+            global => {
+                b  => 'harvest',
+                eh => 'user.dfo',
+            },
+        };
 
 -   command specific
 
-This provides a command specific context. Context set here will be
-applied only to those specific commands.
+    This provides a command specific context. Context set here will be
+    applied only to those specific commands.
 
-    my $hco_context = {
-        hco => {
-            up => 1,
-            vp => '\repository\myapp\src',
-            pn => 'Checkout Items',
-        },
-    };
+        my $hco_context = {
+            hco => {
+                up => 1,
+                vp => '\repository\myapp\src',
+                pn => 'Checkout Items',
+            },
+        };
 
 The global and command context keys are synonymous with the command line
 options detailed in the CA-SCM Reference Manual. Options that do not
@@ -189,15 +189,6 @@ arguments provided is passed using the '-arg' option.
     # Override/Append to context
     $cascm->hci( { p => 'new_package' }, @files ) or die $cascm->errstr;
 
-The methods can be called in a dry run mode. Where the method returns
-the full command line, without executing anything. This can be useful
-for debugging.
-
-    $cascm = CASCM::Wrapper->new( { dry_run => 1 } );
-    $cascm->set_context($context);
-    $cmd = $cascm->hsync();
-    print "Calling hsync() would have executed -> $cmd";
-
 The following CA-SCM commands are available as methods
 
     hap
@@ -267,6 +258,22 @@ This module uses the di option for executing CA-SCM commands. This
 prevents any passwords from being exposed while the command is running.
 The temporary di file is deleted irrespective if the outcome of the
 command.
+
+DRY RUN
+=======
+
+The CASCM methods can be called in a dry run mode. Where the method
+returns the full command line, without executing anything. This can be
+useful for debugging.
+
+    $cascm = CASCM::Wrapper->new( { dry_run => 1 } );
+    $cascm->set_context($context);
+    $cmd = $cascm->hsync();
+    print "Calling hsync() would have executed -> $cmd";
+
+dry_run can also be toggled using contexts. For e.g.,
+
+    $cascm->hsync({dry_run => 1,});
 
 LOGGING
 =======
