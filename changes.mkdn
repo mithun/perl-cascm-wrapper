@@ -4,8 +4,8 @@
 
 # 0.11
 
-- Remove the broker option for `hexecp` since it is not used
-- Allow logging category to be set when requesting `parse_logs`
+-   Remove the broker option for `hexecp` since it is not used
+-   Allow logging category to be set when requesting `parse_logs`
 
 # 0.10
 

@@ -301,6 +301,10 @@ parsed and the messages are logged either as INFO, WARN or ERROR.
     # Set parse_logs to true. This will croak if Log:Any is not found.
     my $cascm = CASCM::Wrapper->new( { parse_logs => 1 } );
 
+    # You can also set the logging category
+    #    This is currently available with Log4perl only
+    $cascm->parse_logs('mylogger');
+
     # Set Context
     my $context = { ... };
     $cascm->set_context($context);
@@ -353,7 +357,7 @@ Mithun Ayachit mithun@cpan.org
 LICENSE AND COPYRIGHT
 =====================
 
-Copyright (c) 2012, Mithun Ayachit. All rights reserved.
+Copyright (c) 2013, Mithun Ayachit. All rights reserved.
 
 This module is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself. See perlartistic.
