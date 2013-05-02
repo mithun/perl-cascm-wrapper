@@ -14,14 +14,7 @@ use Carp qw(croak carp);
 #######################
 # VERSION
 #######################
-our $VERSION = '0.10';
-
-#######################
-# SETTINGS
-#######################
-
-# Logger
-our $log;
+our $VERSION = '0.11';
 
 #######################
 # MODULE METHODS
@@ -109,7 +102,6 @@ sub parse_logs {
         if ( $self->{_options}->{parse_logs} ) {
             eval {
                 require Log::Any;
-                Log::Any->import(qw($log));
               return 1;
             }
               or croak
@@ -259,7 +251,7 @@ sub _init {
     } ## end if ( $options{'context_file'...})
 
     # Check if we're parsing logs
-    $self->parse_logs(1) if $options{'parse_logs'};
+    $self->parse_logs( $options{'parse_logs'} ) if $options{'parse_logs'};
 
     # Done initliazing
   return $self;
@@ -334,7 +326,7 @@ sub _run {
     if ( -f $di_file ) { unlink $di_file; }
 
     # Parse log
-    _parse_log($default_log) if $parse_log;
+    _parse_log( $default_log, $parse_log ) if $parse_log;
 
     # Return
   return $self->_handle_error( $cmd, $rc, $out );
@@ -406,7 +398,7 @@ sub _get_cmd_options {
         'hdlp'      => [qw(b eh en pn pw st usr pkgs)],
         'hdp'       => [qw(b eh en pb pd pn pw st adp pdr usr vdr)],
         'hdv'       => [qw(b s eh en pn pw st vp usr)],
-        'hexecp'    => [qw(b m er ma pw prg syn usr args asyn rport)],
+        'hexecp'    => [qw(m er ma pw prg syn usr args asyn rport)],
         'hexpenv'   => [qw(b f eh en pw cug eac eug usr)],
         'hfatt'     => [qw(b at cp eh er fn ft pw rm add fid get rem rpw usr comp rusr rport)],
         'hformsync' => [qw(b d f eh pw all hfd usr)],
@@ -533,7 +525,12 @@ sub _handle_error {
 
 # Parse Log
 sub _parse_log {
-    my $logfile = shift;
+    my ( $logfile, $category ) = @_;
+
+    $category ||= 0;
+    $category = __PACKAGE__ if ( $category eq '1' );
+
+    my $log = Log::Any->get_logger( $category ? ( category => $category ) : () );
 
     if ( not -f $logfile ) {
         $log->error("Logfile $logfile does not exist");
@@ -868,6 +865,10 @@ I<WARN> or I<ERROR>.
     # Set parse_logs to true. This will croak if Log:Any is not found.
     my $cascm = CASCM::Wrapper->new( { parse_logs => 1 } );
 
+    # You can also set the logging category
+    #    This is currently available with Log4perl only
+    $cascm->parse_logs('mylogger');
+
     # Set Context
     my $context = { ... };
     $cascm->set_context($context);
@@ -915,7 +916,7 @@ Mithun Ayachit C<mithun@cpan.org>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (c) 2012, Mithun Ayachit. All rights reserved.
+Copyright (c) 2013, Mithun Ayachit. All rights reserved.
 
 This module is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself. See L<perlartistic>.
