@@ -4,6 +4,11 @@ author:
 title: 'Version History for CASCM-Wrapper'
 ...
 
+# 0.14
+
+- Log command output using Log::Any
+- Trim log and output lines before logging them
+
 # 0.13
 
 -   It would help to actually set the exitval

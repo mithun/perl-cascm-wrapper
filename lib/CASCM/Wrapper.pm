@@ -14,7 +14,7 @@ use Carp qw(croak carp);
 #######################
 # VERSION
 #######################
-our $VERSION = '0.13';
+our $VERSION = '0.14';
 
 #######################
 # MODULE METHODS
@@ -342,11 +342,14 @@ sub _run {
     # Cleanup DI file if command didn't remove it
     if ( -f $di_file ) { unlink $di_file; }
 
+    # Handle command error and return codes
+    my $method_return_value = $self->_handle_error( $cmd, $rc, $out );
+
     # Parse log
-    _parse_log( $default_log, $parse_log ) if $parse_log;
+    $self->_parse_log( $default_log, $parse_log ) if $parse_log;
 
     # Return
-  return $self->_handle_error( $cmd, $rc, $out );
+  return $method_return_value;
 } ## end sub _run
 
 # Get run context
@@ -517,6 +520,8 @@ sub _handle_error {
         my @lines;
         foreach my $line ( split( /\r\n|\r|\n/, $out ) ) {
             chomp $line;
+            $line =~ s{^\s+}{}gxi;
+            $line =~ s{\s+$}{}gxi;
           next unless $line;
           next if $line =~ /^[[:blank:]]$/;
             push @lines, $line;
@@ -547,7 +552,7 @@ sub _handle_error {
 
 # Parse Log
 sub _parse_log {
-    my ( $logfile, $category ) = @_;
+    my ( $self, $logfile, $category ) = @_;
 
     $category ||= 0;
     $category = __PACKAGE__ if ( $category eq '1' );
@@ -556,26 +561,39 @@ sub _parse_log {
       = Log::Any->get_logger( $category ? ( category => $category ) : () );
 
     if ( not -f $logfile ) {
-        $log->error("Logfile $logfile does not exist");
+
+        # The log file was probably not created
+        #   if the command didn't even execute
+        $log->warn("Logfile $logfile does not exist");
+        $log->error( $self->errstr() ) if ( $self->errstr() );
       return 1;
     } ## end if ( not -f $logfile )
 
-    open( my $L, '<', $logfile )
-      or do { $log->error("Unable to read $logfile") and return 1; };
-    while (<$L>) {
+    open( my $LOG, '<', $logfile ) or do {
+        $log->error("Unable to read $logfile");
+        $log->error( $self->errstr() ) if ( $self->errstr() );
+      return 1;
+    };
+
+    while (<$LOG>) {
         my $line = $_;
       next unless defined $line;
         chomp $line;
+        $line =~ s{^\s+}{}gxi;
+        $line =~ s{\s+$}{}gxi;
       next unless $line;
       next if $line =~ /^[[:blank:]]*$/;
 
-        if    ( $line =~ s/^\s*E0\w{7}:\s*//x ) { $log->error($line); }
-        elsif ( $line =~ s/^\s*W0\w{7}:\s*//x ) { $log->warn($line); }
-        elsif ( $line =~ s/^\s*I0\w{7}:\s*//x ) { $log->info($line); }
-        else                                    { $log->info($line); }
-    } ## end while (<$L>)
-    close $L;
+        if    ( $line =~ s/^\s*E0\w{7}\:\s*//x ) { $log->error($line); }
+        elsif ( $line =~ s/^\s*W0\w{7}\:\s*//x ) { $log->warn($line); }
+        elsif ( $line =~ s/^\s*I0\w{7}\:\s*//x ) { $log->info($line); }
+        else                                     { $log->info($line); }
+    } ## end while (<$LOG>)
+    close $LOG;
     unlink($logfile) or $log->warn("Unable to delete $logfile");
+
+    $log->error( $self->errstr() ) if ( $self->errstr() );
+
   return 1;
 } ## end sub _parse_log
 
