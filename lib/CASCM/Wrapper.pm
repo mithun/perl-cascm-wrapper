@@ -149,6 +149,23 @@ sub errstr { return shift->{_errstr}; }
 # Get return code
 sub exitval { return shift->{_exitval}; }
 
+# Make argument string
+sub make_arg_str {
+    my ( $self, @args ) = @_;
+    my @quoted;
+    foreach my $arg (@args) {
+      next unless defined $arg;
+        $arg =~ s{^\"(.*)\"$}{$1}xi;
+        $arg =~ s{^\'(.*)\'$}{$1}xi;
+        $arg = '"' . $arg . '"';
+        push( @quoted, $arg );
+    } ## end foreach my $arg (@args)
+
+    my $arg_str = '';
+    $arg_str = join( ' ', map { "-arg=$_" } @quoted ) if (@quoted);
+  return $arg_str;
+} ## end sub make_arg_str
+
 #######################
 # CASCM METHODS
 #######################
@@ -316,10 +333,7 @@ sub _run {
     } ## end if ($parse_log)
 
     # Build argument string
-    my $arg_str = q();
-    if (@args) {
-        $arg_str = join( ' ', map { "-arg=$_" } @args );
-    }
+    my $arg_str = $self->make_arg_str(@args);
 
     # Get option string for $cmd
     my $opt_str = $self->_get_option_str( $cmd, $context );
@@ -382,8 +396,20 @@ sub _get_option_str {
     foreach my $option (@cmd_options) {
       next unless $context->{$option};
         my $val = $context->{$option};
-        if   ( $val eq '1' ) { push @opt_args, "-${option}"; }
-        else                 { push @opt_args, "-${option}", $val; }
+        if ( $val eq '1' ) {
+            push @opt_args, "-${option}";
+        }
+        else {
+            if ( $val =~ m{^\s*\-arg} ) {
+                push @opt_args, "-${option}", $val;
+            }
+            else {
+                $val =~ s{^\"(.*)\"$}{$1}xi;
+                $val =~ s{^\'(.*)\'$}{$1}xi;
+                $val = '"' . $val . '"';
+                push @opt_args, "-${option}", $val;
+            } ## end else [ if ( $val =~ m{^\s*\-arg})]
+        } ## end else [ if ( $val eq '1' ) ]
     } ## end foreach my $option (@cmd_options)
 
   return join( ' ', @opt_args );
