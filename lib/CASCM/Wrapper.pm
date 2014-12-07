@@ -14,7 +14,7 @@ use Carp qw(croak carp);
 #######################
 # VERSION
 #######################
-our $VERSION = '0.12';
+our $VERSION = '0.13';
 
 #######################
 # MODULE METHODS
@@ -466,6 +466,12 @@ sub _get_cmd_options {
 sub _handle_error {
     my ( $self, $cmd, $rc, $out ) = @_;
 
+    # Fix return code
+    if ( $rc > 255 ) { $rc = $rc >> 8; }
+
+    # Save exitval
+    $self->_exitval($rc);
+
     # Standard cases
     my %error = (
         '1' => "Command syntax for $cmd is incorrect."
@@ -529,7 +535,6 @@ sub _handle_error {
       return;
     } ## end if ( $rc == -1 )
     elsif ( $rc > 0 ) {
-        if ( $rc > 255 ) { $rc = $rc >> 8; }
         $msg = $error{$rc} || "Unknown error";
         $msg .= " : $out" if $out;
         $self->_err($msg);

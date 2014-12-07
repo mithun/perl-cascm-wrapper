@@ -4,6 +4,10 @@ author:
 title: 'Version History for CASCM-Wrapper'
 ...
 
+# 0.13
+
+-   It would help to actually set the exitval
+
 # 0.12
 
 -   Added `exitval` method to provide the exit value of the last `h`
