@@ -2,6 +2,10 @@
 % Mithun Ayachit
 %
 
+# 0.12
+
+-   Added `exitval` method to provide the exit value of the last `h` command
+
 # 0.11
 
 -   Remove the broker option for `hexecp` since it is not used

@@ -14,7 +14,7 @@ use Carp qw(croak carp);
 #######################
 # VERSION
 #######################
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 #######################
 # MODULE METHODS
@@ -47,7 +47,8 @@ sub set_context {
 # load context
 sub load_context {
     my $self = shift;
-    my $file = shift || ( $self->_err("File required but missing") and return );
+    my $file
+      = shift || ( $self->_err("File required but missing") and return );
 
     if ( not -f $file ) { $self->_err("File $file does not exist"); return; }
 
@@ -57,7 +58,8 @@ sub load_context {
       return 1;
     } or do {
         $self->_err(
-            "Please install Config::Tiny if you'd like to load context files");
+            "Please install Config::Tiny if you'd like to load context files"
+        );
       return;
     };
 
@@ -126,7 +128,9 @@ sub get_context {
         $context = {
 
             # Global
-            $self->{_context}->{global} ? %{ $self->{_context}->{global} } : (),
+            $self->{_context}->{global}
+            ? %{ $self->{_context}->{global} }
+            : (),
 
             # Command specific
             $self->{_context}->{$cmd} ? %{ $self->{_context}->{$cmd} } : (),
@@ -141,6 +145,9 @@ sub get_context {
 
 # Get error message
 sub errstr { return shift->{_errstr}; }
+
+# Get return code
+sub exitval { return shift->{_exitval}; }
 
 #######################
 # CASCM METHODS
@@ -219,6 +226,7 @@ sub _init {
     $self->{_options} = {};
     $self->{_context} = {};
     $self->{_errstr}  = q();
+    $self->{_exitval} = 0;
 
     # Make sure we have a option hash ref
     if ( ref $options_ref ne 'HASH' ) { croak "Hash reference expected"; }
@@ -265,12 +273,21 @@ sub _err {
   return 1;
 } ## end sub _err
 
+# Set exitval
+sub _exitval {
+    my ( $self, $rc ) = @_;
+    $rc = 0 if not defined $rc;
+    $self->{_exitval} = $rc;
+  return 1;
+} ## end sub _exitval
+
 # Execute command
 sub _run {
     my ( $self, $cmd, @args ) = @_;
 
     # Reset error
     $self->_err(q());
+    $self->_exitval(0);
 
     # Get Context & Options
     my $context = {};
@@ -530,7 +547,8 @@ sub _parse_log {
     $category ||= 0;
     $category = __PACKAGE__ if ( $category eq '1' );
 
-    my $log = Log::Any->get_logger( $category ? ( category => $category ) : () );
+    my $log
+      = Log::Any->get_logger( $category ? ( category => $category ) : () );
 
     if ( not -f $logfile ) {
         $log->error("Logfile $logfile does not exist");
@@ -882,7 +900,8 @@ I<WARN> or I<ERROR>.
 
 All methods return true on success and C<undef> on failure. The error
 that most likely caused the I<last> failure can be obtained by calling
-the C<errstr> method.
+the C<errstr> method. The exit value of the last I<h> command can be
+obtained by calling the C<exitval> method.
 
 =head1 DEPENDENCIES
 
