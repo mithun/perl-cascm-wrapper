@@ -3,6 +3,14 @@ Mithun Ayachit
 
 
 
+0.14
+
+
+-   Log command output using Log::Any
+-   Trim log and output lines before logging them
+
+
+
 0.13
 
 
