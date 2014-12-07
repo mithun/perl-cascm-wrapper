@@ -98,7 +98,7 @@ apply only the context keys that are used by a command. For e.g. a
 global context of `vp` will not apply to `hcp`.
 
 The common options _i_ and _di_ are not applicable and ignored for
-all commands. See ["SECURITY"](#SECURITY)
+all commands. See ["SECURITY"](#security)
 
 The following methods are available to manage context
 
@@ -142,7 +142,7 @@ This is a sample context file
     [hcp]
         st = development
 
-__NOTE:__ This method requires [Config::Tiny](http://search.cpan.org/perldoc?Config::Tiny) in order to read the
+**NOTE:** This method requires [Config::Tiny](https://metacpan.org/pod/Config::Tiny) in order to read the
 context file.
 
 ## get\_context()
@@ -159,8 +159,6 @@ an argument
     my $hco_context = $cascm->get_context('hco');
     use Data::Dumper;
     print Dumper($hco_context);
-
-
 
 # CA-SCM METHODS
 
@@ -244,8 +242,6 @@ The following CA-SCM commands are available as methods
     hauthsync
     hformsync
 
-
-
 # SECURITY
 
 This module uses the _di_ option for executing CA-SCM commands. This
@@ -271,11 +267,11 @@ useful for debugging.
 # LOGGING
 
 Since CA-SCM commands output only to log files, this module allows
-parsing and logging of a command's output. [Log::Any](http://search.cpan.org/perldoc?Log::Any) is required to
+parsing and logging of a command's output. [Log::Any](https://metacpan.org/pod/Log::Any) is required to
 use this feature, which in turn allows you to use any (supported)
 Logging mechanism. When using this, any `o` or `oa` options specified
 in the context will be ignored. Your scripts will need to load the
-appropriate [Log::Any::Adapter](http://search.cpan.org/perldoc?Log::Any::Adapter) to capture the log statements. The
+appropriate [Log::Any::Adapter](https://metacpan.org/pod/Log::Any::Adapter) to capture the log statements. The
 CA-SCM log is parsed and the messages are logged either as _INFO_,
 _WARN_ or _ERROR_.
 
@@ -311,7 +307,8 @@ _WARN_ or _ERROR_.
 
 All methods return true on success and `undef` on failure. The error
 that most likely caused the _last_ failure can be obtained by calling
-the `errstr` method.
+the `errstr` method. The exit value of the last _h_ command can be
+obtained by calling the `exitval` method.
 
 # DEPENDENCIES
 
@@ -323,14 +320,15 @@ available in the _PATH_
 
 At least Perl 5.6.1 is required to run.
 
-Optionally, [Config::Tiny](http://search.cpan.org/perldoc?Config::Tiny) is required to read context files
+Optionally, [Config::Tiny](https://metacpan.org/pod/Config::Tiny) is required to read context files
 
-Optionally, [Log::Any](http://search.cpan.org/perldoc?Log::Any) and [Log::Any::Adapter](http://search.cpan.org/perldoc?Log::Any::Adapter) is required to parse
+Optionally, [Log::Any](https://metacpan.org/pod/Log::Any) and [Log::Any::Adapter](https://metacpan.org/pod/Log::Any::Adapter) is required to parse
 CA-SCM log files
 
 # SEE ALSO
 
-[CA Software Change Manager](http://www.ca.com/us/products/detail/CA-Software-Change-Manager.aspx)
+[CA Software Change
+Manager](http://www.ca.com/us/products/detail/CA-Software-Change-Manager.aspx)
 
 # BUGS AND LIMITATIONS
 
@@ -347,4 +345,4 @@ Mithun Ayachit `mithun@cpan.org`
 Copyright (c) 2013, Mithun Ayachit. All rights reserved.
 
 This module is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself. See [perlartistic](http://search.cpan.org/perldoc?perlartistic).
+under the same terms as Perl itself. See [perlartistic](https://metacpan.org/pod/perlartistic).

@@ -36,7 +36,8 @@ ok(
 );
 
 ok( $cascm->hco('test.pl') eq
-      'hco -arg=test.pl -b harvest -eh my_creds.dfo -up -v -vp \repo\myapp\src' );
+      'hco -arg=test.pl -b harvest -eh my_creds.dfo -up -v -vp \repo\myapp\src'
+);
 
 ok( $cascm->hco( { p => 'my_package' }, 'test.pl' ) eq
       'hco -arg=test.pl -b harvest -eh my_creds.dfo -p my_package -up -v -vp \repo\myapp\src'
