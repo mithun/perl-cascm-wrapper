@@ -4,6 +4,12 @@ author:
 title: 'Version History for CASCM-Wrapper'
 ...
 
+# 0.15
+
+-   Always quote option values
+-   Provide cleaner log messages if command execution failed in the
+    shell
+
 # 0.14
 
 -   Log command output using Log::Any
