@@ -14,7 +14,7 @@ use Carp qw(croak carp);
 #######################
 # VERSION
 #######################
-our $VERSION = '0.15';
+our $VERSION = '0.16';
 
 #######################
 # MODULE METHODS
@@ -979,9 +979,8 @@ Manager|http://www.ca.com/us/products/detail/CA-Software-Change-Manager.aspx>
 
 =head1 BUGS AND LIMITATIONS
 
-Please report any bugs or feature requests to
-C<bug-cascm-wrapper@rt.cpan.org>, or through the web interface at
-L<http://rt.cpan.org/Public/Dist/Display.html?Name=CASCM-Wrapper>
+Please report any bugs or feature requests at
+L<https://github.com/mithun/perl-cascm-wrapper/issues>
 
 =head1 AUTHOR
 
@@ -989,7 +988,7 @@ Mithun Ayachit C<mithun@cpan.org>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (c) 2013, Mithun Ayachit. All rights reserved.
+Copyright (c) 2014, Mithun Ayachit. All rights reserved.
 
 This module is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself. See L<perlartistic>.

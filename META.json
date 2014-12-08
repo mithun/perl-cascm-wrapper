@@ -47,13 +47,13 @@
    "provides" : {
       "CASCM::Wrapper" : {
          "file" : "lib/CASCM/Wrapper.pm",
-         "version" : "0.15"
+         "version" : "0.16"
       }
    },
    "release_status" : "stable",
    "resources" : {
       "bugtracker" : {
-         "web" : "http://rt.cpan.org/Public/Dist/Display.html?Name=CASCM-Wrapper"
+         "web" : "https://github.com/mithun/perl-cascm-wrapper/issues"
       },
       "homepage" : "https://github.com/mithun/perl-cascm-wrapper",
       "license" : [
@@ -63,5 +63,5 @@
          "url" : "git://github.com/mithun/perl-cascm-wrapper.git"
       }
    },
-   "version" : "0.15"
+   "version" : "0.16"
 }

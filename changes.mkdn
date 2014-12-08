@@ -4,6 +4,10 @@ author:
 title: 'Version History for CASCM-Wrapper'
 ...
 
+# 0.16
+
+-   Move bug tracking to github-issues
+
 # 0.15
 
 -   Always quote option values

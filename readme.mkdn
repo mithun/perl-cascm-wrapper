@@ -332,9 +332,8 @@ Manager](http://www.ca.com/us/products/detail/CA-Software-Change-Manager.aspx)
 
 # BUGS AND LIMITATIONS
 
-Please report any bugs or feature requests to
-`bug-cascm-wrapper@rt.cpan.org`, or through the web interface at
-[http://rt.cpan.org/Public/Dist/Display.html?Name=CASCM-Wrapper](http://rt.cpan.org/Public/Dist/Display.html?Name=CASCM-Wrapper)
+Please report any bugs or feature requests at
+[https://github.com/mithun/perl-cascm-wrapper/issues](https://github.com/mithun/perl-cascm-wrapper/issues)
 
 # AUTHOR
 
@@ -342,7 +341,7 @@ Mithun Ayachit `mithun@cpan.org`
 
 # LICENSE AND COPYRIGHT
 
-Copyright (c) 2013, Mithun Ayachit. All rights reserved.
+Copyright (c) 2014, Mithun Ayachit. All rights reserved.
 
 This module is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself. See [perlartistic](https://metacpan.org/pod/perlartistic).

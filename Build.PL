@@ -39,7 +39,7 @@ my $builder = Module::Build->new(
         keywords  => [qw(cascm harvest vci version-control scm)],
         resources => {
             bugtracker =>
-              'http://rt.cpan.org/Public/Dist/Display.html?Name=CASCM-Wrapper',
+              'https://github.com/mithun/perl-cascm-wrapper/issues',
             repository => 'git://github.com/mithun/perl-cascm-wrapper.git',
             homepage   => 'https://github.com/mithun/perl-cascm-wrapper',
         },
