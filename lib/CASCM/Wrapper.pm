@@ -566,8 +566,14 @@ sub _handle_error {
       return;
     } ## end if ( $rc == -1 )
     elsif ( $rc > 0 ) {
-        $msg = $error{$rc} || "Unknown error";
-        $msg .= " : $out" if $out;
+        if ( $error{$rc} ) {
+            $msg = $error{$rc};
+            $msg .= " : $out" if $out;
+        } ## end if ( $error{$rc} )
+        else {
+            if   ($out) { $msg = $out; }
+            else        { $msg = 'Unknown error'; }
+        } ## end else [ if ( $error{$rc} ) ]
         $self->_err($msg);
       return;
     } ## end elsif ( $rc > 0 )
@@ -590,13 +596,12 @@ sub _parse_log {
 
         # The log file was probably not created
         #   if the command didn't even execute
-        $log->warn("Logfile $logfile does not exist");
         $log->error( $self->errstr() ) if ( $self->errstr() );
       return 1;
     } ## end if ( not -f $logfile )
 
     open( my $LOG, '<', $logfile ) or do {
-        $log->error("Unable to read $logfile");
+        $log->warn("Unable to read $logfile");
         $log->error( $self->errstr() ) if ( $self->errstr() );
       return 1;
     };
@@ -616,7 +621,7 @@ sub _parse_log {
         else                                     { $log->info($line); }
     } ## end while (<$LOG>)
     close $LOG;
-    unlink($logfile) or $log->warn("Unable to delete $logfile");
+    unlink($logfile);
 
     $log->error( $self->errstr() ) if ( $self->errstr() );
 
