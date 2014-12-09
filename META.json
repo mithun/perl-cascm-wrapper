@@ -47,7 +47,7 @@
    "provides" : {
       "CASCM::Wrapper" : {
          "file" : "lib/CASCM/Wrapper.pm",
-         "version" : "v0.16.1"
+         "version" : "v1.0.1"
       }
    },
    "release_status" : "stable",
@@ -63,5 +63,5 @@
          "url" : "git://github.com/mithun/perl-cascm-wrapper.git"
       }
    },
-   "version" : "v0.16.1"
+   "version" : "v1.0.1"
 }
