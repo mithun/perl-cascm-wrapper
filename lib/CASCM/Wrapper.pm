@@ -14,7 +14,7 @@ use Carp qw(croak carp);
 #######################
 # VERSION
 #######################
-our $VERSION = '1.0.1';
+our $VERSION = '1.0.2';
 
 #######################
 # MODULE METHODS
@@ -640,7 +640,7 @@ __END__
 
 =head1 NAME
 
-CASCM::Wrapper - Run CA-SCM (Harvest) commands
+CASCM::Wrapper - Run CA Harvest commands
 
     use CASCM::Wrapper;
 
@@ -696,22 +696,21 @@ CASCM::Wrapper - Run CA-SCM (Harvest) commands
 
 =head1 DESCRIPTION
 
-This module is a wrapper around CA Software Change Manager's (formerly
-known as Harvest) commands. It provides a perl-ish interface to setting
-the context in which each command is executed, along with optional
-loading of context from files as well as parsing output logs.
+This module is a wrapper around CA Harvest Software Change Manager's commands.
+It provides a perl-ish interface to setting the context in which each command
+is executed, along with optional loading of context from files as well as
+parsing output logs.
 
 =head1 CONTEXT
 
-The context is a I<hash of hashes> which contain the following types of
-keys:
+The context is a I<hash of hashes> which contain the following types of keys:
 
 =over
 
 =item global
 
-This specifies the global context. Any context set here will be applied
-to every command that uses it.
+This specifies the global context. Any context set here will be applied to
+every command that uses it.
 
     my $global_context = {
         global => {
@@ -722,8 +721,8 @@ to every command that uses it.
 
 =item command specific
 
-This provides a command specific context. Context set here will be
-applied only to those specific commands.
+This provides a command specific context. Context set here will be applied only
+to those specific commands.
 
     my $hco_context = {
         hco => {
@@ -735,33 +734,32 @@ applied only to those specific commands.
 
 =back
 
-The global and command context keys are synonymous with the command
-line options detailed in the CA-SCM Reference Manual. Options that do
-not require a value should be set to '1'. i.e. C<< {hco => {up => 1} }
->> is equivalent to C<hco -up>. The methods are intelligent enough to
-apply only the context keys that are used by a command. For e.g. a
-global context of C<vp> will not apply to C<hcp>.
+The global and command context keys are synonymous with the command line
+options detailed in the CA-SCM Reference Manual. Options that do not require a
+value should be set to '1'. i.e. C<< {hco => {up => 1} } >> is equivalent to
+C<hco -up>. The methods are intelligent enough to apply only the context keys
+that are used by a command. For e.g. a global context of C<vp> will not apply
+to C<hcp>.
 
-The common options I<i> and I<di> are not applicable and ignored for
-all commands. See L</SECURITY>
+The common options I<i> and I<di> are not applicable and ignored for all
+commands. See L</SECURITY>
 
 The following methods are available to manage context
 
 =head2 set_context($context)
 
-Sets the context. Old context is forgotten. The argument provided must
-be a hash reference
+Sets the context. Old context is forgotten. The argument provided must be a
+hash reference
 
 =head2 update_context($context)
 
-Updates the current context. The argument provided must be a hash
-reference
+Updates the current context. The argument provided must be a hash reference
 
 =head2 load_context($file)
 
-This loads the context from an I<INI> file. The root parameters defines
-the global context. Each sectional parameter defines the command
-specific context. Old context is forgotten.
+This loads the context from an I<INI> file. The root parameters defines the
+global context. Each sectional parameter defines the command specific context.
+Old context is forgotten.
 
     # Load context file at initialization.
     #   This will croak if it fails to read the context file
@@ -787,8 +785,8 @@ This is a sample context file
     [hcp]
         st = development
 
-B<NOTE:> This method requires L<Config::Tiny> in order to read the
-context file.
+B<NOTE:> This method requires L<Config::Tiny> in order to read the context
+file.
 
 =head2 get_context()
 
@@ -798,8 +796,8 @@ Returns a hash reference of current context
     use Data::Dumper;
     print Dumper($context);
 
-You can also get a command specific context by passing the command as
-an argument
+You can also get a command specific context by passing the command as an
+argument
 
     my $hco_context = $cascm->get_context('hco');
     use Data::Dumper;
@@ -808,14 +806,14 @@ an argument
 
 =head1 CA-SCM METHODS
 
-Almost every 'h' command that uses a context is supported. The command
-names are synonymous with the methods used to invoke them.
+Almost every 'h' command that uses a context is supported. The command names
+are synonymous with the methods used to invoke them.
 
-Every method accepts two optional arguments. The first is an hash
-reference that overrides/appends to the context for that method. This
-allows setting a context only for that specific method call. The second
-is an array of arguments that is passed on to the 'h' command. Any
-arguments provided is passed using the '-arg' option.
+Every method accepts two optional arguments. The first is an hash reference
+that overrides/appends to the context for that method. This allows setting a
+context only for that specific method call. The second is an array of arguments
+that is passed on to the 'h' command. Any arguments provided is passed using
+the '-arg' option.
 
     # No parameters. Everything required is already set in the context
     $cascm->hdlp() or die $cascm->errstr;
@@ -891,16 +889,15 @@ The following CA-SCM commands are available as methods
 
 =head1 SECURITY
 
-This module uses the I<di> option for executing CA-SCM commands. This
-prevents any passwords from being exposed while the command is running.
-The temporary I<di> file is deleted irrespective if the outcome of the
-command.
+This module uses the I<di> option for executing CA-SCM commands. This prevents
+any passwords from being exposed while the command is running. The temporary
+I<di> file is deleted irrespective if the outcome of the command.
 
 =head1 DRY RUN
 
-The CASCM methods can be called in a I<dry run> mode. Where the method
-returns the full command line, without executing anything. This can be
-useful for debugging.
+The CASCM methods can be called in a I<dry run> mode. Where the method returns
+the full command line, without executing anything. This can be useful for
+debugging.
 
     $cascm = CASCM::Wrapper->new( { dry_run => 1 } );
     $cascm->set_context($context);
@@ -913,14 +910,13 @@ C<dry_run> can also be toggled using contexts. For e.g.,
 
 =head1 LOGGING
 
-Since CA-SCM commands output only to log files, this module allows
-parsing and logging of a command's output. L<Log::Any> is required to
-use this feature, which in turn allows you to use any (supported)
-Logging mechanism. When using this, any C<o> or C<oa> options specified
-in the context will be ignored. Your scripts will need to load the
-appropriate L<Log::Any::Adapter> to capture the log statements. The
-CA-SCM log is parsed and the messages are logged either as I<INFO>,
-I<WARN> or I<ERROR>.
+Since CA-SCM commands output only to log files, this module allows parsing and
+logging of a command's output. L<Log::Any> is required to use this feature,
+which in turn allows you to use any (supported) Logging mechanism. When using
+this, any C<o> or C<oa> options specified in the context will be ignored. Your
+scripts will need to load the appropriate L<Log::Any::Adapter> to capture the
+log statements. The CA-SCM log is parsed and the messages are logged either as
+I<INFO>, I<WARN> or I<ERROR>.
 
     # Using Log4perl
 
@@ -952,25 +948,24 @@ I<WARN> or I<ERROR>.
 
 =head1 ERROR HANDLING
 
-All methods return true on success and C<undef> on failure. The error
-that most likely caused the I<last> failure can be obtained by calling
-the C<errstr> method. The exit value of the last I<h> command can be
-obtained by calling the C<exitval> method.
+All methods return true on success and C<undef> on failure. The error that most
+likely caused the I<last> failure can be obtained by calling the C<errstr>
+method. The exit value of the last I<h> command can be obtained by calling the
+C<exitval> method.
 
 =head1 DEPENDENCIES
 
-CA-SCM r12 (or higher) client. Harvest 7.1 might work, but has not been
-tested.
+CA-SCM r12 (or higher) client. Harvest 7.1 might work, but has not been tested.
 
-The CA-SCM methods depends on the corresponding commands to be
-available in the I<PATH>
+The CA-SCM methods depends on the corresponding commands to be available in the
+I<PATH>
 
 At least Perl 5.6.1 is required to run.
 
 Optionally, L<Config::Tiny> is required to read context files
 
-Optionally, L<Log::Any> and L<Log::Any::Adapter> is required to parse
-CA-SCM log files
+Optionally, L<Log::Any> and L<Log::Any::Adapter> is required to parse CA-SCM
+log files
 
 =head1 SEE ALSO
 
@@ -990,7 +985,7 @@ Mithun Ayachit C<mithun@cpan.org>
 
 Copyright (c) 2014, Mithun Ayachit. All rights reserved.
 
-This module is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself. See L<perlartistic>.
+This module is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself. See L<perlartistic>.
 
 =cut
